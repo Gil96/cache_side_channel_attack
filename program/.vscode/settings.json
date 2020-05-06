@@ -1,0 +1,6 @@
+{
+    "files.associations": {
+        "limits": "c",
+        "inttypes.h": "c"
+    }
+}
