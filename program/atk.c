@@ -22,7 +22,7 @@ DESCRIPTION:
 #include <string.h>
 #include <time.h>
 
-#define N_MEAS 1
+#define N_MEAS 100
 #define LOGICAL_CORE 3              // logical core where this process will run on
 #define SIZE32KB (32*1024)          //  represents 32 KB
 #define W 8                         //  associativity number of L1

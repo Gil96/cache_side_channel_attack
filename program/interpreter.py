@@ -1,4 +1,4 @@
-num_meas = 200
+num_meas = 100
 delta = 16
 k = [[x for x in range(256)] for y in range(16)]
 
@@ -33,13 +33,15 @@ for l in range(0, num_meas):
     
     for ti, table in enumerate (tables):
         for j in range(0,4):
+            # print("iteration:" + str(l))
             for hki in range(0,256):
                 hacc = plaintext[ti + j*4] ^ hki
-                # print("\t hki:" + str(hki) + " -> " + str(hacc))
+                # print("\t hki:" + str(hki) + "X" + str(plaintext[ti+j*4])  + " -> " + str(hacc))
                 line_hacc = (table + (hacc//delta)) % 64
-                # print("\t \t" + str(line_hacc))
+                # print("\t \t +" + str(line_hacc))
                 if line_hacc in u_lines:
                     k[ti + j*4][hki] = -1
+                    # print ("$" + str(ti+j*4))
 
 
 

@@ -355,7 +355,7 @@ void AES_encrypt(const unsigned char *in, unsigned char *out,
     FILE * logfile2;
     char file_name[35];
     char file_name2[35];
-    int * lines = malloc(sizeof(int)*164);
+    int * lines = malloc(sizeof(int)*250);
     int * table_lines = malloc(sizeof(int)*4);
     //-----------------------------------------
 
@@ -427,28 +427,28 @@ void AES_encrypt(const unsigned char *in, unsigned char *out,
             (Te4[(t1 >> 16) & 0xff] & 0x00ff0000) ^
             (Te4[(t2 >>  8) & 0xff] & 0x0000ff00) ^
             (Te4[(t3      ) & 0xff] & 0x000000ff) ^
-            rk[0];
+            rk[40]; 
         PUTU32(out     , s0);
         s1 =
             (Te4[(t1 >> 24)       ] & 0xff000000) ^
             (Te4[(t2 >> 16) & 0xff] & 0x00ff0000) ^
             (Te4[(t3 >>  8) & 0xff] & 0x0000ff00) ^
             (Te4[(t0      ) & 0xff] & 0x000000ff) ^
-            rk[1];
+            rk[41];
         PUTU32(out +  4, s1);
         s2 =
             (Te4[(t2 >> 24)       ] & 0xff000000) ^
             (Te4[(t3 >> 16) & 0xff] & 0x00ff0000) ^
             (Te4[(t0 >>  8) & 0xff] & 0x0000ff00) ^
             (Te4[(t1      ) & 0xff] & 0x000000ff) ^
-            rk[2];
+            rk[42];
         PUTU32(out +  8, s2);
         s3 =
             (Te4[(t3 >> 24)       ] & 0xff000000) ^
             (Te4[(t0 >> 16) & 0xff] & 0x00ff0000) ^
             (Te4[(t1 >>  8) & 0xff] & 0x0000ff00) ^
             (Te4[(t2      ) & 0xff] & 0x000000ff) ^
-            rk[3];
+            rk[43];
         PUTU32(out + 12, s3);
 
     }
@@ -466,6 +466,9 @@ void AES_encrypt(const unsigned char *in, unsigned char *out,
 	s2 = GETU32(in +  8) ^ rk[2];
 	s3 = GETU32(in + 12) ^ rk[3];
 
+    // if this print is removed the tables offset is changed and then measurements are going to fail
+    //Since this attack assumes the table offsets is 0
+    printf("->>te0 offset: %d\n\n", L1_cache_block_offset_translator(Te0)); 
 
     int i = 0;
     for(;;){ // optimize this
