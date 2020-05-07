@@ -58,10 +58,11 @@ int main(int argc, char *argv[]) {
     AES_KEY * key = malloc(sizeof(AES_KEY));
     key->rounds =  10;                          
     
-	unsigned char k[16] = {255,255,255,255
-						,255,255,255,255
-						,255,255,255,255
-						,255,255,255,255}; // place key here !!
+	unsigned char k[16] = 
+    {255,255,255,255
+	,255,255,255,255
+	,255,255,255,255
+	,255,255,255,255}; // place key here !!
 
     if (AES_set_encrypt_key( k, 128, key) != 0)
         printf("AES_set_encrypt_key ERROR");

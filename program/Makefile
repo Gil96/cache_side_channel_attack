@@ -3,6 +3,7 @@ PAPILIB=/home/verao9/papi-6.0.0/src/libpapi.a
 PAPIH=/home/verao9/papi-6.0.0/src
 
 all: $(TARGETS)
+	rm -f results/*.*	
 
 atk: atk.c
 	$(CC) $(CFLAGS) -I $(PAPIH) atk.c $(PAPILIB) -o atk
@@ -19,5 +20,4 @@ vic: vic.o aes.o
 
 clean:
 	rm -f $(TARGETS) *.o *.stderr *.stdout core *~
-	rm *.out *.dat
-	touch cm1_plot.dat
+	rm -f results/*.*

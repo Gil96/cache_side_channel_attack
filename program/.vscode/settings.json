@@ -1,6 +1,7 @@
 {
     "files.associations": {
         "limits": "c",
-        "inttypes.h": "c"
+        "inttypes.h": "c",
+        "git.enabled": false
     }
 }
