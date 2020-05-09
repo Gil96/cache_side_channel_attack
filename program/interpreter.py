@@ -1,10 +1,24 @@
-from pyfinite import ffield  # Required for the GF(256) multiplications
+from pyfinite import ffield  # To perform GF(256) multiplications
+from math import log2        # To calculate delta bits
 
-num_meas = 100
-delta = 16
+
+
+#1Round vars
 k = [[x for x in range(256)] for y in range(16)]
 
+#2Round vars
+F = ffield.FField(8)
+lk = [[x for x in range(65536)] for y in range(4)]
+hx = [x for x in range(4)]
+line_hx = [x for x in range(4)]
+lk_results = [x for x in range(4)]
 
+#assumes no offset ie each key byte only and only has the same specific first delta bits  
+part_key = [y for y in range(16)]
+delta = 16
+delta_bits = log2(delta)
+
+#sbox - 256 
 s = [
         0x63, 0x7c, 0x77, 0x7b, 0xf2, 0x6b, 0x6f, 0xc5, 0x30, 0x01, 0x67, 0x2b, 0xfe, 0xd7, 0xab, 0x76,
         0xca, 0x82, 0xc9, 0x7d, 0xfa, 0x59, 0x47, 0xf0, 0xad, 0xd4, 0xa2, 0xaf, 0x9c, 0xa4, 0x72, 0xc0,
@@ -24,18 +38,18 @@ s = [
         0x8c, 0xa1, 0x89, 0x0d, 0xbf, 0xe6, 0x42, 0x68, 0x41, 0x99, 0x2d, 0x0f, 0xb0, 0x54, 0xbb, 0x16
         ]
 
-# def full_attack():
-    #round_1_attack()
-
-
-
 
 def round_1_attack():
 
-    for l in range(0, num_meas):
-
-        meas_file = open("results/meas#" + str(l) + ".out", "r")
-        vic_file = open("results/victim#" + str(l) + ".out", "r")
+    l=0
+    while(True):
+        
+        try:
+            meas_file = open("results/meas#" + str(l) + ".out", "r")
+            vic_file = open("results/victim#" + str(l) + ".out", "r")
+            l+=1
+        except IOError:
+            break
 
         first = vic_file.readline()
         first = first[:-2]
@@ -48,46 +62,34 @@ def round_1_attack():
         meas_file.close()
         vic_file.close()
 
-        #print( plaintext)
-
         u_lines = []
         for index, item in enumerate(results):
             if item < 500:
                 u_lines.append(index) 
 
-        # print (u_lines)
-        
+
         for ti, table in enumerate (tables):
             for j in range(0,4):
-                # print("iteration:" + str(l))
                 for hki in range(0,256):
                     hacc = plaintext[ti + j*4] ^ hki
-                    # print("\t hki:" + str(hki) + "X" + str(plaintext[ti+j*4])  + " -> " + str(hacc))
                     line_hacc = (table + (hacc//delta)) % 64
-                    # print("\t \t +" + str(line_hacc))
                     if line_hacc in u_lines:
                         k[ti + j*4][hki] = -1
-                        # print ("$" + str(ti+j*4))
-
-    for i , ki in enumerate (k):
-        print (">> k" + str(i))
-        for elem in ki:
-            if elem != -1:
-                print (elem)
+        
 
 def round_2_attack():
 
-    F = ffield.FField(8)
-    high_hkA = 240
-    high_hkB = 240
-    high_hkC = 240
-    high_hkD = 240
-    lk = [x for x in range(65536)]
 
-    for l in range(0, num_meas):
+    l=0
+    while(True):
 
-        meas_file = open("results/meas#" + str(l) + ".out", "r")
-        vic_file = open("results/victim#" + str(l) + ".out", "r")
+        try:
+            meas_file = open("results/meas#" + str(l) + ".out", "r")
+            vic_file = open("results/victim#" + str(l) + ".out", "r")
+            l+=1
+
+        except IOError:
+            break
 
         first = vic_file.readline()
         first = first[:-2]
@@ -100,35 +102,124 @@ def round_2_attack():
         meas_file.close()
         vic_file.close()
 
-        #print( plaintext)
-
         u_lines = []
         for index, item in enumerate(results):
             if item < 500:
-                u_lines.append(index) 
-# all the key combination structure, ie: 64 combinations ** 4 key bytes * 4 lines
+                u_lines.append(index)
 
-        # WARNING experiment only for ko , k5 , k10, k15 in Te2
+
         for low_hkA in range(0, 16):
             for low_hkB in range(0, 16):
                 for low_hkC in range(0, 16):
                     for low_hkD in range(0, 16):
-                        hkA = high_hkA + low_hkA
-                        hkB = high_hkB + low_hkB
-                        hkC = high_hkC + low_hkC
-                        hkD = high_hkD + low_hkD
+                        hk0 = part_key[0] + low_hkA
+                        hk1 = part_key[1] + low_hkB
+                        hk2 = part_key[2] + low_hkC
+                        hk3 = part_key[3] + low_hkD
+                        hk4 = part_key[4] + low_hkA
+                        hk5 = part_key[5] + low_hkB
+                        hk6 = part_key[6] + low_hkC
+                        hk7 = part_key[7] + low_hkD
+                        hk8 = part_key[8] + low_hkA
+                        hk9 = part_key[9] + low_hkB
+                        hk10 = part_key[10] + low_hkC
+                        hk11 = part_key[11] + low_hkD
+                        hk12 = part_key[12] + low_hkA
+                        hk13 = part_key[13] + low_hkB
+                        hk14 = part_key[14] + low_hkC
+                        hk15 = part_key[15] + low_hkD
 
-                        hx = s[p[0] ^ hkA] ^ s[p[5] ^ hkB] ^ F.Multiply(2, s[p[10]^hkC] ) ^ F.Multiply(3, s[p[15]^hkD] ) ^ s[hkD] ^ 240
-                        #print("hx:"+str(hx))
-                        line_hx = (tables[2] + (hx//delta)) % 64
+                        #X2
+                        hx[0] = s[p[0] ^ hk0] ^ s[p[5] ^ hk5] ^ F.Multiply(2, s[p[10]^hk10]) ^ F.Multiply(3, s[p[15]^hk15]) ^ s[hk15] ^ part_key[2]
+                        #X5
+                        hx[1] = s[p[4] ^ hk4] ^ F.Multiply(2,s[p[9] ^ hk9]) ^ F.Multiply(3, s[p[14]^hk14]) ^ s[p[3]^hk3] ^ s[hk14] ^ part_key[1] ^ part_key[5]
+                        #X8
+                        hx[2] = F.Multiply(2,s[p[8] ^ hk8]) ^ F.Multiply(3,s[p[13] ^ hk13]) ^ s[p[2]^hk2] ^ s[p[7]^hk7] ^ s[hk13] ^ part_key[0] ^ part_key[4] ^ part_key[8] ^ 1
+                        #X15
+                        hx[3] = F.Multiply(3,s[p[12] ^ hk12]) ^ s[p[1]^hk1] ^ s[p[6]^hk6] ^ F.Multiply(2, s[p[11]^hk11]) ^ s[hk12] ^ part_key[3] ^ part_key[7] ^ part_key[11] ^ part_key[15]
+                        
 
-                        if line_hx in u_lines:
-                            lk[(low_hkA<<12) + (low_hkB<<8) + (low_hkC<<4) + low_hkD ] = -1
+                        for i in range(0,4):
+                            line = (tables[(2-i)%4] + (hx[i]//delta)) % 64
+                            line_hx[i] = line
+                            if (line in u_lines):
+                                lk[i][(low_hkA<<12) + (low_hkB<<8) + (low_hkC<<4) + low_hkD] = -1
 
-    for index , lk_item in enumerate (lk):
-        if lk_item !=1:
-            print(lk_item)
-            #print(lk_item>>12 & 0xf + lk_item>>8 & 0xf + lk_item>>4 & 0xf + lk_item>>0 & 0xf)   this is not quite right
+                        #implement?: soon he detects there is only 1 combination per lk[i], breaks
 
 
+                        #if number of measurement samples are not enough consider using others equations ...
+                        # ...see Desktop/Others/AES_1-Round_Equations.txt
+                        
+
+
+    for index in range(0,4):
+        for ij in range(0,65536):
+            if(lk[index][ij] != -1):
+                print(lk[index][ij])
+        print("###")
+    
+
+    
+    for lk_index, lk_item in enumerate (lk):
+        for combination in lk_item:
+            if combination != -1:
+                lk_results[lk_index] = combination
+                break
+
+
+    hk0 = part_key[0] + ((lk_results[0]>>12) & 0xf)
+    hk1 = part_key[1] + ((lk_results[3]>>8) & 0xf)
+    hk2 = part_key[2] + ((lk_results[2]>>4) & 0xf)
+    hk3 = part_key[3] + ((lk_results[1]) & 0xf)
+    hk4 = part_key[4] + ((lk_results[1]>>12) & 0xf)
+    hk5 = part_key[5] + ((lk_results[0]>>8) & 0xf)
+    hk6 = part_key[6] + ((lk_results[3]>>4) & 0xf)
+    hk7 = part_key[7] + ((lk_results[2]) & 0xf)
+    hk8 = part_key[8] + ((lk_results[2]>>12) & 0xf)
+    hk9 = part_key[9] + ((lk_results[1]>>8) & 0xf)
+    hk10 = part_key[10] + ((lk_results[0]>>4) & 0xf)
+    hk11 = part_key[11] + ((lk_results[3]) & 0xf)
+    hk12 = part_key[12] + ((lk_results[3]>>12) & 0xf)
+    hk13 = part_key[13] + ((lk_results[2]>>8) & 0xf)
+    hk14 = part_key[14] + ((lk_results[1]>>4) & 0xf)
+    hk15 = part_key[15] + ((lk_results[0]) & 0xf)
+
+    print(str(hk0))
+    print(str(hk1))
+    print(str(hk2))
+    print(str(hk3))
+    print(str(hk4))
+    print(str(hk5))
+    print(str(hk6))
+    print(str(hk7))
+    print(str(hk8))
+    print(str(hk9))
+    print(str(hk10))
+    print(str(hk11))
+    print(str(hk12))
+    print(str(hk13))
+    print(str(hk14))
+    print(str(hk15))
+
+
+
+
+#admits it has the same delta bits
+#admits the number of delta bits is 4
+#in decimal format, considering the bits: XXXX - 0000
+def get_partial_key():
+
+    for i , ki in enumerate (k):
+        for elem in ki:
+            if elem != -1:
+                part_key[i] = elem & 0xf0
+                break
+
+    print (part_key)
+
+
+
+round_1_attack()
+get_partial_key()
 round_2_attack()
