@@ -22,14 +22,14 @@ DESCRIPTION:
 #include <string.h>
 #include <time.h>
 
-#define N_MEAS 200
+#define N_MEAS 500
 #define LOGICAL_CORE 3              // logical core where this process will run on
 #define SIZE32KB (32*1024)          //  represents 32 KB
 #define W 8                         //  associativity number of L1
 #define STRIDE (SIZE32KB/W)         //  step distance between the consecutive accesses in order to fill a particular line of L1
 #define ATTACKER_DISTANCE 64        //  bytes space between each attacker thread [block size=64]
 #define REPETITIONS 32            //  number of times the whole measurement process is repeated
-#define INNER_REPETITIONS 10000    // number of times a measurement of a given L1 line is performed
+#define INNER_REPETITIONS 1000    // number of times a measurement of a given L1 line is performed
 
 void cpu_setup();
 void get_plaintext(char * plaintext);
@@ -52,7 +52,7 @@ int main(void) {
     register int ii;                        
     register int v_line = L1_line_translator(V);
 
-    char * plaintext = malloc(sizeof(char) * 16*(3+1)+1); 
+    char plaintext[16*(3+1)+1];   //change to malloc() if it gives problem
     char * args[3]; // should be char * const instead, check this
     int pid  = 0;
     char file_name[35];
@@ -80,6 +80,8 @@ int main(void) {
 
 
     
+
+
     for(int j = 0; j < N_MEAS ; j++){    
 
 
@@ -163,7 +165,7 @@ void get_plaintext(char * plaintext){
         snprintf(num, sizeof(num)+1, "%i.", rand_value); // +1 because of '\0'
         strcat(plaintext, num);
     }
-
+    
 }
 
 
