@@ -3,7 +3,8 @@ PAPILIB=/home/verao9/papi-6.0.0/src/libpapi.a
 PAPIH=/home/verao9/papi-6.0.0/src
 
 all: $(TARGETS)
-	rm -f results/*.*	
+	rm -f lines_used_debug/*.*
+	rm -f side_channel_info/*.*
 
 atk: atk.c
 	$(CC) $(CFLAGS) -I $(PAPIH) atk.c $(PAPILIB) -o atk
