@@ -13,7 +13,9 @@ Attack Features: (might change over time)
   
  
 Attack Procedure:
- >> cd /program
+```
+ cd /program
  make
  ./atk
  python3 crypto.py
+```
