@@ -29,7 +29,7 @@ DESCRIPTION:
 #define STRIDE (SIZE32KB/W)         //  step distance between the consecutive accesses in order to fill a particular line of L1
 #define ATTACKER_DISTANCE 64        //  bytes space between each attacker thread [block size=64]
 #define REPETITIONS 32            //  number of times the whole measurement process is repeated
-#define INNER_REPETITIONS 1000    // number of times a measurement of a given L1 line is performed
+#define INNER_REPETITIONS 10000    // number of times a measurement of a given L1 line is performed
 
 void cpu_setup();
 void get_plaintext(char * plaintext);
@@ -63,7 +63,7 @@ int main(void) {
     long_long start_cycles, end_cycles, start_usec, end_usec;
     float avgMISSES;
     float avgTIME;
-
+    int a;
 
 
     retval = PAPI_library_init(PAPI_VER_CURRENT);
@@ -85,13 +85,14 @@ int main(void) {
     for(int j = 0; j < N_MEAS ; j++){    
 
 
-        snprintf(file_name, sizeof(file_name), "results/meas#%i.out",j);
+        snprintf(file_name, sizeof(file_name), "side_channel_info/meas#%i.out",j);
         logfile = fopen(file_name,"w");
         get_plaintext(plaintext);
         // fprintf(logfile,"plaintext: %s\n", plaintext);
 
-        // printf("plaintext: %s\n", plaintext); 
+        // printf("plaintext: %s\n", plaintext);
 
+        fprintf(logfile,"%s\n", plaintext);
         args[0] = "./vic";
         args[1] = plaintext;
         args[2] =  NULL;
@@ -100,16 +101,11 @@ int main(void) {
             execv("./vic", args);
         }
 
-        
-        // -- --- -- - -PILLOW - - - -- - ----- --- -- 
+        // waits for vic.c configuration
         usleep(2000);
-        // ADD PILLOW to not detect the lines used by victim
 
 
-
-        // can be simplified to line var
-        // maybe change to the previous loop : repetition -> line -> inner_rep
-        for ( min=0, line=0; min<SIZE32KB/W ; line++, min+=ATTACKER_DISTANCE) { 
+        for ( min=0 ; min<SIZE32KB/W ; min+=ATTACKER_DISTANCE) { 
 
                 if (PAPI_reset(EventSet) != PAPI_OK)
                     handle_error(1,"reset");
@@ -130,14 +126,12 @@ int main(void) {
                 if (PAPI_stop(EventSet, values) != PAPI_OK)
                     handle_error(1,"stop");
 
-                fprintf(logfile,"%lld\n", values[0]);
-                // fprintf(logfile,"LINE=%d \tavgTIME=%lld\n", line ,values[0]);       
+                fprintf(logfile,"%lld\n", values[0]);      
         }
 
         fclose(logfile);
 
-        wait(NULL);
-        // or kill(child_pid, SIGKILL);
+        wait(NULL);// or kill(child_pid, SIGKILL);
 
 
     }
@@ -149,8 +143,6 @@ int main(void) {
 
 void get_plaintext(char * plaintext){
 
-    // 16 bytes * max 3 digits + separation char +1 for ending string /0
-
     int rand_value;
     char num[4];
 
@@ -158,10 +150,7 @@ void get_plaintext(char * plaintext){
 
 
     for (int i= 0; i<16; i++){
-        rand_value = random()%256;    // change it to better random mech             
-        if(0==1){                              
-            rand_value = (unsigned char) 98;   // place here the plaintext desired
-        }
+        rand_value = random()%256;    // change it to better random mech 
         snprintf(num, sizeof(num)+1, "%i.", rand_value); // +1 because of '\0'
         strcat(plaintext, num);
     }

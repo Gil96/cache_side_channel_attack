@@ -12,7 +12,7 @@ DESCRIPTION:
 #include <unistd.h>
 
 #define AES_MAXNR 14
-#define REPETITIONS 100000          // works with aes-1m & atk-10k 
+#define REPETITIONS 1000000          // works with aes-1m & atk-10k 
 #define SIZE32KB (32*1024)        //  represents 32 KB
 
 
@@ -33,6 +33,8 @@ typedef struct aes_key_st {
 void AES_encrypt(const unsigned char *in, unsigned char *out, const AES_KEY *key);
 
 int AES_set_encrypt_key(const unsigned char *userKey, const int bits, AES_KEY *key);
+
+void AES_print(const unsigned char *in, unsigned char *out, const AES_KEY *key);
 
 void L1_line_printer( char * name, void * addr);
 

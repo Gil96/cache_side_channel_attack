@@ -350,24 +350,7 @@ void AES_encrypt(const unsigned char *in, unsigned char *out,
     int r = key->rounds >> 1;
     rk = key->rd_key;
 
-    //printing variables--------------------
-    FILE * logfile;
-    FILE * logfile2;
-    char file_name[35];
-    char file_name2[35];
-    int * lines = malloc(sizeof(int)*250);
-    int * table_lines = malloc(sizeof(int)*4);
-    //-----------------------------------------
-
     rk = key->rd_key;
-
-    // AES ROUNDS 0 - 9 ------------------------------------
-    register int rep;
-    for(rep = 0; rep < REPETITIONS; rep++){
-
-        // printf("%d -",rep);
-        // printf("  *%u\n",rk[0]);
-        //printf("_%u",(unsigned char) *in);
 
 
         // Loop unrolled
@@ -451,13 +434,28 @@ void AES_encrypt(const unsigned char *in, unsigned char *out,
             rk[43];
         PUTU32(out + 12, s3);
 
+
     }
 
 
 
-//----- LINE USED PRINTING ZONE--------
+void AES_print(const unsigned char *in, unsigned char *out, const AES_KEY *key) {
 
 
+
+    // printing variables
+    FILE * logfile;
+    FILE * logfile2;
+    char file_name[35];
+    char file_name2[35];
+    int * lines = malloc(sizeof(int)*250);
+    int * table_lines = malloc(sizeof(int)*4);
+
+
+    // aes variables
+    const u32 *rk;
+	u32 s0, s1, s2, s3, t0, t1, t2, t3;
+    int r = key->rounds >> 1;
     rk = key->rd_key;
     r = key->rounds>>1;
 
@@ -468,7 +466,7 @@ void AES_encrypt(const unsigned char *in, unsigned char *out,
 
     // if this print is removed the tables offset is changed and then measurements are going to fail
     //Since this attack assumes the table offsets is 0
-    printf("->>te0 offset: %d\n\n", L1_cache_block_offset_translator(Te0)); 
+    // printf("->>te0 offset: %d\n\n", L1_cache_block_offset_translator(Te0)); 
 
     int i = 0;
     for(;;){ // optimize this
@@ -530,6 +528,11 @@ void AES_encrypt(const unsigned char *in, unsigned char *out,
     }
 
 
+
+        // printf("%d -",rep);
+        // printf("  *%u\n",rk[0]);
+        //printf("_%u",(unsigned char) *in);
+
     lines[i] = L1_line_translator_const(Te4+(t0 >> 24)       );i++;
     lines[i] = L1_line_translator_const(Te4+((t1 >> 16) & 0xff));i++;
     lines[i] = L1_line_translator_const(Te4+((t2 >> 8) & 0xff));i++;
@@ -572,8 +575,8 @@ void AES_encrypt(const unsigned char *in, unsigned char *out,
 
     int j = 0;
     for (;;j++){
-        snprintf(file_name, sizeof(file_name), "results/victim#%i.out",j);
-        snprintf(file_name2, sizeof(file_name2), "results/lines#%i.out",j);
+        snprintf(file_name, sizeof(file_name), "side_channel_info/tables#%i.out",j);
+        snprintf(file_name2, sizeof(file_name2), "lines_used_debug/lines#%i.out",j);
         if( (access( file_name, F_OK ) == -1) && 
             (access( file_name2, F_OK) == -1) ) {
             logfile = fopen(file_name,"w");
@@ -582,19 +585,13 @@ void AES_encrypt(const unsigned char *in, unsigned char *out,
         }
     }
 
-
-
-    for (int e = 0; e< 16; e++)
-        fprintf(logfile,"%u.", (unsigned char)  *(in+e));
     for (int e = 0; e<4; e++)
-        fprintf(logfile,"\n%d", table_lines[e]);
+        fprintf(logfile,"%d\n", table_lines[e]);
     fclose(logfile);
 
     for (int e = 0; e < i; e++)
         fprintf(logfile2,"%d\n", lines[e]);
     fclose(logfile2);
-//------------------------------------------------------
-
 
 }
 

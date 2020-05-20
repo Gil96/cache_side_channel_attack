@@ -34,11 +34,11 @@ s = [
 
 # Round 1 Attack Varables:
 
-hk_score = [[0 for x in range(256)] for y in range(16)]
-hk_ref = [[0 for x in range(256)] for y in range(16)]
-candidate_k = [[0 for x in range(delta)] for y in range(16)]  # List of candidate key bytes per byte
-h_candidate_k = [[]for y in range(16)]      # All high <ki> bits of each candidate key
-fh_candidate_k = [0 for x in range(16)]   # The first high<ki> in the format:XXXX 0000 of each candidate keybyte
+hk_score = [[0 for x in range(256)] for y in range(16)]             # Score structure per key byte value
+hk_ref = [[0 for x in range(256)] for y in range(16)]               # Number of times a given hk has updated its score
+candidate_k = [[0 for x in range(delta)] for y in range(16)]        # List of candidate key bytes per byte
+h_candidate_k = [[]for y in range(16)]                              # All high <ki> bits of each candidate key
+fh_candidate_k = [0 for x in range(16)]                             # The first high<ki> in the format:XXXX 0000 of each candidate keybyte
 
 
 
@@ -66,12 +66,11 @@ def round_1_attack():
                 hk_ref[i][hki] += 1
 
 
-    #stores delta keys with highest score per byte
+    # stores delta keys with highest score per byte
     for i in range(len(hk_score)):
         candidate_k[i] = sorted(range(len(hk_score[i])), key = lambda sub: hk_score[i][sub])[-delta:] 
 
-    #stores <ki> in XXXX-0000 format
-    #admits table offset = 0
+    # stores <ki> in XXXX-0000 format  || admits table offset = 0
     for i in range(len(candidate_k)):
         for key in candidate_k[i]:
             high = key &0xf0
@@ -143,6 +142,9 @@ def round_2_attack():
                             line = (tables[(2-i)%4] + (hx[i]//delta)) % 64
                             if (line in u_lines):
                                 lk[i][comb_index] = -1
+                                if comb_index == 65535:
+                                    print(l)
+                                    print(line)
 
 
     # Pass data from lk to lk_list
@@ -188,18 +190,18 @@ def get_u_lines(scores):
 # Get the content of meas, victim files
 def read_files(l):
     
-    meas_file = open("results/meas#" + str(l) + ".out", "r")
-    vic_file = open("results/victim#" + str(l) + ".out", "r")
+    meas_file = open("side_channel_info/meas#" + str(l) + ".out", "r")
+    tab_file = open("side_channel_info/tables#" + str(l) + ".out", "r")
 
-    first = vic_file.readline()
-    first = first[:-2]
+    plaintext_raw = meas_file.readline()
+    plaintext_raw = plaintext_raw[:-2]
 
-    plaintext = [int(i) for i in first.split('.')]
-    tables = [int(i) for i in vic_file]
+    plaintext = [int(i) for i in plaintext_raw.split('.')]
+    tables = [int(i) for i in tab_file]
     scores = [int(i) for i in meas_file]
 
     meas_file.close()
-    vic_file.close()
+    tab_file.close()
 
     return plaintext, tables, scores
 

@@ -58,17 +58,27 @@ int main(int argc, char *argv[]) {
     AES_KEY * key = malloc(sizeof(AES_KEY));
     key->rounds =  10;                          
     
+// Place the secret key here
 	unsigned char k[16] = 
     {255,255,255,255
 	,255,255,255,255
 	,255,255,255,255
-	,255,255,255,255}; // place key here !!
+	,255,255,255,255};
 
+
+// creates the round key from the secret key
     if (AES_set_encrypt_key( k, 128, key) != 0)
         printf("AES_set_encrypt_key ERROR");
     
 
-    AES_encrypt(p, out, key);
+// print aes table L1 lines
+    AES_print(p,out, key);
+
+
+// AES-128bit ECB encryption
+    for(register int rep = 0; rep < REPETITIONS; rep++){
+        AES_encrypt(p, out, key);
+    }
 
     return 0;
 }
