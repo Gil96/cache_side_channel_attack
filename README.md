@@ -9,3 +9,13 @@ Attack Features: (might change over time)
 - Plaintext known & inputted
 - Table Addresses known (at least one)
   - Table offsets known (at least one)
+  
+  
+ 
+Attack Procedure:
+```
+> cd /program
+> make
+> ./atk
+> python3 crypto.py
+```
