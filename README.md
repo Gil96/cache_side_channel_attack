@@ -14,8 +14,8 @@ Attack Features: (might change over time)
  
 Attack Procedure:
 ```
- cd /program
- make
- ./atk
- python3 crypto.py
+> cd /program
+> make
+> ./atk
+> python3 crypto.py
 ```
