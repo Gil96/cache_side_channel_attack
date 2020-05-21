@@ -1,10 +1,4 @@
-/*
 
-DESCRIPTION:
-    This file contains all the data structures as well as tables
-    required by aes.c.
-
-*/
 
 #include <stdio.h>
 #include <stdlib.h>
