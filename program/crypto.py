@@ -88,13 +88,13 @@ def round_1_attack():
 
 
 # Round 2 Attack Varables:
-F = ffield.FField(8)
-lk = [[x for x in range(65536)] for y in range(4)]
-lk_list = [[]for y in range(4)]
-hx = [x for x in range(4)]
-hk = [0 for x in range(16)]
-fk = [[] for x in range(16)]
-line_value_threshold = 50
+F = ffield.FField(8)                                                # Galouis Field(256)
+lk = [[x for x in range(65536)] for y in range(4)]                  # Structure containing all the combinations from the 4 equations
+lk_list = [[]for y in range(4)]                                     # List of the remaining combinations from lk 
+hx = [x for x in range(4)]                                          # Hipotetical index
+hk = [0 for x in range(16)]                                         # Hipotetical key
+fk = [[] for x in range(16)]                                        # Array of the final keys extracted
+line_value_threshold = 50                                           # Auxiliar structure
 
 
 def round_2_attack():
@@ -142,9 +142,6 @@ def round_2_attack():
                             line = (tables[(2-i)%4] + (hx[i]//delta)) % 64
                             if (line in u_lines):
                                 lk[i][comb_index] = -1
-                                if comb_index == 65535:
-                                    print(l)
-                                    print(line)
 
 
     # Pass data from lk to lk_list
@@ -164,7 +161,6 @@ def round_2_attack():
 
 
 # Auxiliar functions
-
 
 
 # Register the possible keys

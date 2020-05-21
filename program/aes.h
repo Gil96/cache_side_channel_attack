@@ -12,7 +12,7 @@ DESCRIPTION:
 #include <unistd.h>
 
 #define AES_MAXNR 14
-#define REPETITIONS 1000000          // works with aes-1m & atk-10k 
+#define REPETITIONS 1000000       //  number of encryptions per measurement
 #define SIZE32KB (32*1024)        //  represents 32 KB
 
 

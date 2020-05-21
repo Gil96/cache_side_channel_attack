@@ -342,6 +342,7 @@ static const u32 rcon[] = {
 	0x1B000000, 0x36000000, /* for 128-bit blocks, Rijndael never uses more than 10 rcon values */
 };
 
+// From OpenSSL 9.8.0a
 void AES_encrypt(const unsigned char *in, unsigned char *out,
 		 const AES_KEY *key) {
 
@@ -437,171 +438,7 @@ void AES_encrypt(const unsigned char *in, unsigned char *out,
 
     }
 
-
-
-void AES_print(const unsigned char *in, unsigned char *out, const AES_KEY *key) {
-
-
-
-    // printing variables
-    FILE * logfile;
-    FILE * logfile2;
-    char file_name[35];
-    char file_name2[35];
-    int * lines = malloc(sizeof(int)*250);
-    int * table_lines = malloc(sizeof(int)*4);
-
-
-    // aes variables
-    const u32 *rk;
-	u32 s0, s1, s2, s3, t0, t1, t2, t3;
-    int r = key->rounds >> 1;
-    rk = key->rd_key;
-    r = key->rounds>>1;
-
-	s0 = GETU32(in     ) ^ rk[0];
-	s1 = GETU32(in +  4) ^ rk[1];
-	s2 = GETU32(in +  8) ^ rk[2];
-	s3 = GETU32(in + 12) ^ rk[3];
-
-    // if this print is removed the tables offset is changed and then measurements are going to fail
-    //Since this attack assumes the table offsets is 0
-    // printf("->>te0 offset: %d\n\n", L1_cache_block_offset_translator(Te0)); 
-
-    int i = 0;
-    for(;;){ // optimize this
-
-        lines[i] = L1_line_translator_const(Te0+(s0 >> 24));i++;
-        lines[i] = L1_line_translator_const(Te1+((s1 >> 16) & 0xff));i++;
-        lines[i] = L1_line_translator_const(Te2+((s2 >>  8) & 0xff));i++;
-        lines[i] = L1_line_translator_const(Te3+((s3) & 0xff));i++;
-
-        lines[i] = L1_line_translator_const(Te0+(s1 >> 24));i++;
-        lines[i] = L1_line_translator_const(Te1+((s2 >> 16) & 0xff));i++;
-        lines[i] = L1_line_translator_const(Te2+((s3 >>  8) & 0xff));i++;
-        lines[i] = L1_line_translator_const(Te3+((s0) & 0xff));i++;
-
-        lines[i] = L1_line_translator_const(Te0+(s2 >> 24));i++;
-        lines[i] = L1_line_translator_const(Te1+((s3 >> 16) & 0xff));i++;
-        lines[i] = L1_line_translator_const(Te2+((s0 >>  8) & 0xff));i++;
-        lines[i] = L1_line_translator_const(Te3+((s1) & 0xff));i++;
-
-        lines[i] = L1_line_translator_const(Te0+(s3 >> 24));i++;
-        lines[i] = L1_line_translator_const(Te1+((s0 >> 16) & 0xff));i++;
-        lines[i] = L1_line_translator_const(Te2+((s1 >>  8) & 0xff));i++;
-        lines[i] = L1_line_translator_const(Te3+((s2) & 0xff));i++;
-
-        t0 = Te0[s0 >> 24] ^ Te1[(s1 >> 16) & 0xff] ^ Te2[(s2 >>  8) & 0xff] ^ Te3[s3 & 0xff] ^ rk[4];
-        t1 = Te0[s1 >> 24] ^ Te1[(s2 >> 16) & 0xff] ^ Te2[(s3 >>  8) & 0xff] ^ Te3[s0 & 0xff] ^ rk[5];
-        t2 = Te0[s2 >> 24] ^ Te1[(s3 >> 16) & 0xff] ^ Te2[(s0 >>  8) & 0xff] ^ Te3[s1 & 0xff] ^ rk[6];
-        t3 = Te0[s3 >> 24] ^ Te1[(s0 >> 16) & 0xff] ^ Te2[(s1 >>  8) & 0xff] ^ Te3[s2 & 0xff] ^ rk[7];
-
-        rk += 8;
-        if (--r == 0) {
-            break;
-        }
-
-        lines[i] = L1_line_translator_const(Te0+(t0 >> 24));i++;
-        lines[i] = L1_line_translator_const(Te1+((t1 >> 16) & 0xff));i++;
-        lines[i] = L1_line_translator_const(Te2+((t2 >>  8) & 0xff));i++;
-        lines[i] = L1_line_translator_const(Te3+((t3) & 0xff));i++;
-
-        lines[i] = L1_line_translator_const(Te0+(t1 >> 24));i++;
-        lines[i] = L1_line_translator_const(Te1+((t2 >> 16) & 0xff));i++;
-        lines[i] = L1_line_translator_const(Te2+((t3 >>  8) & 0xff));i++;
-        lines[i] = L1_line_translator_const(Te3+((t0) & 0xff));i++;
-
-        lines[i] = L1_line_translator_const(Te0+(t2 >> 24));i++;
-        lines[i] = L1_line_translator_const(Te1+((t3 >> 16) & 0xff));i++;
-        lines[i] = L1_line_translator_const(Te2+((t0 >>  8) & 0xff));i++;
-        lines[i] = L1_line_translator_const(Te3+((t1) & 0xff));i++;
-
-        lines[i] = L1_line_translator_const(Te0+(t3 >> 24));i++;
-        lines[i] = L1_line_translator_const(Te1+((t0 >> 16) & 0xff));i++;
-        lines[i] = L1_line_translator_const(Te2+((t1 >>  8) & 0xff));i++;
-        lines[i] = L1_line_translator_const(Te3+((t2) & 0xff));i++;
-
-        s0 = Te0[t0 >> 24] ^ Te1[(t1 >> 16) & 0xff] ^ Te2[(t2 >>  8) & 0xff] ^ Te3[t3 & 0xff] ^ rk[0];
-        s1 = Te0[t1 >> 24] ^ Te1[(t2 >> 16) & 0xff] ^ Te2[(t3 >>  8) & 0xff] ^ Te3[t0 & 0xff] ^ rk[1];
-        s2 = Te0[t2 >> 24] ^ Te1[(t3 >> 16) & 0xff] ^ Te2[(t0 >>  8) & 0xff] ^ Te3[t1 & 0xff] ^ rk[2];
-        s3 = Te0[t3 >> 24] ^ Te1[(t0 >> 16) & 0xff] ^ Te2[(t1 >>  8) & 0xff] ^ Te3[t2 & 0xff] ^ rk[3];  
-    }
-
-
-
-        // printf("%d -",rep);
-        // printf("  *%u\n",rk[0]);
-        //printf("_%u",(unsigned char) *in);
-
-    lines[i] = L1_line_translator_const(Te4+(t0 >> 24)       );i++;
-    lines[i] = L1_line_translator_const(Te4+((t1 >> 16) & 0xff));i++;
-    lines[i] = L1_line_translator_const(Te4+((t2 >> 8) & 0xff));i++;
-    lines[i] = L1_line_translator_const(Te4+((t3) & 0xff));i++;
-
-    lines[i] = L1_line_translator_const(Te4+(t1 >> 24)       );i++;
-    lines[i] = L1_line_translator_const(Te4+((t2 >> 16) & 0xff));i++;
-    lines[i] = L1_line_translator_const(Te4+((t3 >> 8) & 0xff));i++;
-    lines[i] = L1_line_translator_const(Te4+((t0) & 0xff));i++;
-
-    lines[i] = L1_line_translator_const(Te4+(t2 >> 24)       );i++;
-    lines[i] = L1_line_translator_const(Te4+((t3 >> 16) & 0xff));i++;
-    lines[i] = L1_line_translator_const(Te4+((t0 >> 8) & 0xff));i++;
-    lines[i] = L1_line_translator_const(Te4+((t1) & 0xff));i++;
-
-    lines[i] = L1_line_translator_const(Te4+(t3 >> 24)       );i++;
-    lines[i] = L1_line_translator_const(Te4+((t0 >> 16) & 0xff));i++;
-    lines[i] = L1_line_translator_const(Te4+((t1 >> 8) & 0xff));i++;
-    lines[i] = L1_line_translator_const(Te4+((t2) & 0xff));i++;
-        
-    
-    lines[i] = L1_line_translator(out);i++;
-    lines[i] = L1_line_translator(out+16);i++;
-    lines[i] = L1_line_translator_const(in);i++;
-    lines[i] = L1_line_translator_const(in+16);i++;
-    lines[i] = L1_line_translator(&s0);i++;
-    lines[i] = L1_line_translator(&t3);i++;
-    lines[i] = L1_line_translator_const(rk);i++;
-    lines[i] = L1_line_translator_const(rk+16);i++;
-    lines[i] = L1_line_translator_const(rk+32);i++;
-    lines[i] = L1_line_translator_const(rk+43);i++;
-    qsort(lines, i,sizeof(int),cmp);
-
-    table_lines[0] = L1_line_translator_const(Te0);
-    table_lines[1] = L1_line_translator_const(Te1);
-    table_lines[2] = L1_line_translator_const(Te2);
-    table_lines[3] = L1_line_translator_const(Te3);
-    
-
-
-    int j = 0;
-    for (;;j++){
-        snprintf(file_name, sizeof(file_name), "side_channel_info/tables#%i.out",j);
-        snprintf(file_name2, sizeof(file_name2), "lines_used_debug/lines#%i.out",j);
-        if( (access( file_name, F_OK ) == -1) && 
-            (access( file_name2, F_OK) == -1) ) {
-            logfile = fopen(file_name,"w");
-            logfile2 = fopen(file_name2,"w");
-            break;
-        }
-    }
-
-    for (int e = 0; e<4; e++)
-        fprintf(logfile,"%d\n", table_lines[e]);
-    fclose(logfile);
-
-    for (int e = 0; e < i; e++)
-        fprintf(logfile2,"%d\n", lines[e]);
-    fclose(logfile2);
-
-}
-
-int cmp (const void * a, const void * b) {
-   return ( *(int*)a - *(int*)b );
-}
-
-
-
-
+// From OpenSSL 9.8.0a
 int AES_set_encrypt_key(const unsigned char *userKey, const int bits,
 			AES_KEY *key) {
 
@@ -699,6 +536,165 @@ int AES_set_encrypt_key(const unsigned char *userKey, const int bits,
 	}
 	return 0;
 }
+
+
+// Implemented by Bruno - in order to extract table info & debugging info
+void AES_print(const unsigned char *in, unsigned char *out, const AES_KEY *key) {
+
+
+
+    // printing variables
+    FILE * logfile;
+    FILE * logfile2;
+    char file_name[35];
+    char file_name2[35];
+    int * lines = malloc(sizeof(int)*250);
+    int * table_lines = malloc(sizeof(int)*4);
+
+
+    // aes variables
+    const u32 *rk;
+	u32 s0, s1, s2, s3, t0, t1, t2, t3;
+    int r = key->rounds >> 1;
+    rk = key->rd_key;
+    r = key->rounds>>1;
+
+	s0 = GETU32(in     ) ^ rk[0];
+	s1 = GETU32(in +  4) ^ rk[1];
+	s2 = GETU32(in +  8) ^ rk[2];
+	s3 = GETU32(in + 12) ^ rk[3];
+
+    // if this print is removed the tables offset is changed and then measurements are going to fail
+    //Since this attack assumes the table offsets is 0
+    // printf("->>te0 offset: %d\n\n", L1_cache_block_offset_translator(Te0)); 
+
+    int i = 0;
+    for(;;){ // optimize this
+
+        lines[i] = L1_line_translator_const(Te0+(s0 >> 24));i++;
+        lines[i] = L1_line_translator_const(Te1+((s1 >> 16) & 0xff));i++;
+        lines[i] = L1_line_translator_const(Te2+((s2 >>  8) & 0xff));i++;
+        lines[i] = L1_line_translator_const(Te3+((s3) & 0xff));i++;
+
+        lines[i] = L1_line_translator_const(Te0+(s1 >> 24));i++;
+        lines[i] = L1_line_translator_const(Te1+((s2 >> 16) & 0xff));i++;
+        lines[i] = L1_line_translator_const(Te2+((s3 >>  8) & 0xff));i++;
+        lines[i] = L1_line_translator_const(Te3+((s0) & 0xff));i++;
+
+        lines[i] = L1_line_translator_const(Te0+(s2 >> 24));i++;
+        lines[i] = L1_line_translator_const(Te1+((s3 >> 16) & 0xff));i++;
+        lines[i] = L1_line_translator_const(Te2+((s0 >>  8) & 0xff));i++;
+        lines[i] = L1_line_translator_const(Te3+((s1) & 0xff));i++;
+
+        lines[i] = L1_line_translator_const(Te0+(s3 >> 24));i++;
+        lines[i] = L1_line_translator_const(Te1+((s0 >> 16) & 0xff));i++;
+        lines[i] = L1_line_translator_const(Te2+((s1 >>  8) & 0xff));i++;
+        lines[i] = L1_line_translator_const(Te3+((s2) & 0xff));i++;
+
+        t0 = Te0[s0 >> 24] ^ Te1[(s1 >> 16) & 0xff] ^ Te2[(s2 >>  8) & 0xff] ^ Te3[s3 & 0xff] ^ rk[4];
+        t1 = Te0[s1 >> 24] ^ Te1[(s2 >> 16) & 0xff] ^ Te2[(s3 >>  8) & 0xff] ^ Te3[s0 & 0xff] ^ rk[5];
+        t2 = Te0[s2 >> 24] ^ Te1[(s3 >> 16) & 0xff] ^ Te2[(s0 >>  8) & 0xff] ^ Te3[s1 & 0xff] ^ rk[6];
+        t3 = Te0[s3 >> 24] ^ Te1[(s0 >> 16) & 0xff] ^ Te2[(s1 >>  8) & 0xff] ^ Te3[s2 & 0xff] ^ rk[7];
+
+        rk += 8;
+        if (--r == 0) {
+            break;
+        }
+
+        lines[i] = L1_line_translator_const(Te0+(t0 >> 24));i++;
+        lines[i] = L1_line_translator_const(Te1+((t1 >> 16) & 0xff));i++;
+        lines[i] = L1_line_translator_const(Te2+((t2 >>  8) & 0xff));i++;
+        lines[i] = L1_line_translator_const(Te3+((t3) & 0xff));i++;
+
+        lines[i] = L1_line_translator_const(Te0+(t1 >> 24));i++;
+        lines[i] = L1_line_translator_const(Te1+((t2 >> 16) & 0xff));i++;
+        lines[i] = L1_line_translator_const(Te2+((t3 >>  8) & 0xff));i++;
+        lines[i] = L1_line_translator_const(Te3+((t0) & 0xff));i++;
+
+        lines[i] = L1_line_translator_const(Te0+(t2 >> 24));i++;
+        lines[i] = L1_line_translator_const(Te1+((t3 >> 16) & 0xff));i++;
+        lines[i] = L1_line_translator_const(Te2+((t0 >>  8) & 0xff));i++;
+        lines[i] = L1_line_translator_const(Te3+((t1) & 0xff));i++;
+
+        lines[i] = L1_line_translator_const(Te0+(t3 >> 24));i++;
+        lines[i] = L1_line_translator_const(Te1+((t0 >> 16) & 0xff));i++;
+        lines[i] = L1_line_translator_const(Te2+((t1 >>  8) & 0xff));i++;
+        lines[i] = L1_line_translator_const(Te3+((t2) & 0xff));i++;
+
+        s0 = Te0[t0 >> 24] ^ Te1[(t1 >> 16) & 0xff] ^ Te2[(t2 >>  8) & 0xff] ^ Te3[t3 & 0xff] ^ rk[0];
+        s1 = Te0[t1 >> 24] ^ Te1[(t2 >> 16) & 0xff] ^ Te2[(t3 >>  8) & 0xff] ^ Te3[t0 & 0xff] ^ rk[1];
+        s2 = Te0[t2 >> 24] ^ Te1[(t3 >> 16) & 0xff] ^ Te2[(t0 >>  8) & 0xff] ^ Te3[t1 & 0xff] ^ rk[2];
+        s3 = Te0[t3 >> 24] ^ Te1[(t0 >> 16) & 0xff] ^ Te2[(t1 >>  8) & 0xff] ^ Te3[t2 & 0xff] ^ rk[3];  
+    }
+
+
+    lines[i] = L1_line_translator_const(Te4+(t0 >> 24)       );i++;
+    lines[i] = L1_line_translator_const(Te4+((t1 >> 16) & 0xff));i++;
+    lines[i] = L1_line_translator_const(Te4+((t2 >> 8) & 0xff));i++;
+    lines[i] = L1_line_translator_const(Te4+((t3) & 0xff));i++;
+
+    lines[i] = L1_line_translator_const(Te4+(t1 >> 24)       );i++;
+    lines[i] = L1_line_translator_const(Te4+((t2 >> 16) & 0xff));i++;
+    lines[i] = L1_line_translator_const(Te4+((t3 >> 8) & 0xff));i++;
+    lines[i] = L1_line_translator_const(Te4+((t0) & 0xff));i++;
+
+    lines[i] = L1_line_translator_const(Te4+(t2 >> 24)       );i++;
+    lines[i] = L1_line_translator_const(Te4+((t3 >> 16) & 0xff));i++;
+    lines[i] = L1_line_translator_const(Te4+((t0 >> 8) & 0xff));i++;
+    lines[i] = L1_line_translator_const(Te4+((t1) & 0xff));i++;
+
+    lines[i] = L1_line_translator_const(Te4+(t3 >> 24)       );i++;
+    lines[i] = L1_line_translator_const(Te4+((t0 >> 16) & 0xff));i++;
+    lines[i] = L1_line_translator_const(Te4+((t1 >> 8) & 0xff));i++;
+    lines[i] = L1_line_translator_const(Te4+((t2) & 0xff));i++;
+        
+    
+    lines[i] = L1_line_translator(out);i++;
+    lines[i] = L1_line_translator(out+16);i++;
+    lines[i] = L1_line_translator_const(in);i++;
+    lines[i] = L1_line_translator_const(in+16);i++;
+    lines[i] = L1_line_translator(&s0);i++;
+    lines[i] = L1_line_translator(&t3);i++;
+    lines[i] = L1_line_translator_const(rk);i++;
+    lines[i] = L1_line_translator_const(rk+16);i++;
+    lines[i] = L1_line_translator_const(rk+32);i++;
+    lines[i] = L1_line_translator_const(rk+43);i++;
+    qsort(lines, i,sizeof(int),cmp);
+
+    table_lines[0] = L1_line_translator_const(Te0);
+    table_lines[1] = L1_line_translator_const(Te1);
+    table_lines[2] = L1_line_translator_const(Te2);
+    table_lines[3] = L1_line_translator_const(Te3);
+    
+
+
+    int j = 0;
+    for (;;j++){
+        snprintf(file_name, sizeof(file_name), "side_channel_info/tables#%i.out",j);
+        snprintf(file_name2, sizeof(file_name2), "lines_used_debug/lines#%i.out",j);
+        if( (access( file_name, F_OK ) == -1) && 
+            (access( file_name2, F_OK) == -1) ) {
+            logfile = fopen(file_name,"w");
+            logfile2 = fopen(file_name2,"w");
+            break;
+        }
+    }
+
+    for (int e = 0; e<4; e++)
+        fprintf(logfile,"%d\n", table_lines[e]);
+    fclose(logfile);
+
+    for (int e = 0; e < i; e++)
+        fprintf(logfile2,"%d\n", lines[e]);
+    fclose(logfile2);
+
+}
+
+int cmp (const void * a, const void * b) {
+   return ( *(int*)a - *(int*)b );
+}
+
+
 
 
 int L1_line_translator( void * addr) {

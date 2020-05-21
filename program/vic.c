@@ -1,25 +1,3 @@
-/* 
-vic.c
-    
-    DESCRIPION
-        Victim program that fills a random L1 line in a endless loop
-        Victim and attacker run in the same CPU
-        This is a try to implement aes_core code from openssl (ECB)
-            ->  Only 1ºRound implemented
-
-    Notes:
-        Assumes the it receives the proper sized plaintext - 16B
-
-    CPU details:
-        model name.............. Intel(R) Core(TM) i7-8565U CPU @ 1.80GHz
-        CPU(s).................. 8
-        On-line CPU(s) list..... 0-7
-        Thread(s) per core...... 2
-        Core(s) per socket...... 4
-        L1d_cache_size.......... 32768 B
-        L1d_assoc............... 8
-        L1d_line_size........... 64 B    
-*/
 
 
 

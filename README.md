@@ -14,6 +14,7 @@ Attack Features: (might change over time)
  
 Attack Procedure:
 ```
+(required the instalation of the package pyfinite)
 > cd /program
 > make
 > ./atk
