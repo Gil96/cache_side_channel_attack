@@ -25,6 +25,10 @@ unsigned char * convert_plaintext(char * input);
 int main(int argc, char *argv[]) {
 
     cpu_setup();
+
+
+    // TO-DO: Replace everything above for real OpenSSL call.
+
     
 // plaintext configuration
     const unsigned char *p = convert_plaintext(argv[1]); 
