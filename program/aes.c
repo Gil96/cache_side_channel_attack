@@ -701,7 +701,6 @@ int L1_line_translator( void * addr) {
     uint64_t n = (uintptr_t) (addr);
     uint64_t x = (n>>6)%SIZE32KB%64;
     return (int) x;
-
 }
 
 int L1_line_translator_const( const void * addr) {

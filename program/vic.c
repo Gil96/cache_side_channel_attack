@@ -1,6 +1,3 @@
-
-
-
 #define _GNU_SOURCE 
 
 #include <stdio.h>
@@ -12,7 +9,7 @@
 #include "aes.h"
 #include <string.h>
 
-#define LOGICAL_CORE 7              // logical core where this process will run on
+#define LOGICAL_CORE 7            // logical core where this process will run on
 #define W 8                       //  associativity number of L1
 #define STRIDE (SIZE32KB/W)       //  step distance between the consecutive accesses in order to fill a particular line of L1
 
@@ -41,7 +38,7 @@ int main(int argc, char *argv[]) {
     key->rounds =  10;                          
     
 // Place the secret key here
-	unsigned char k[16] = 
+	unsigned char k[16] =  // no need for [16]
     {255,255,255,255
 	,255,255,255,255
 	,255,255,255,255
