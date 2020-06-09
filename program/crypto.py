@@ -30,6 +30,8 @@ s = [
 
 
 
+#implement table/offset attack
+
 
 
 # Round 1 Attack Varables:
@@ -45,10 +47,11 @@ fh_candidate_k = [0 for x in range(16)]                             # The first 
 
 def round_1_attack():
 
+    tables = read_table()
     l=0
     while(True):
         try:
-            p,tables,scores  = read_files(l)
+            p,scores  = read_files(l)
             l+=1
         except IOError:
             break
@@ -100,15 +103,18 @@ line_value_threshold = 50                                           # Auxiliar s
 def round_2_attack():
 
     l=0
+    tables = read_table()
+    print(tables)
     while(True):
 
         try:
-            p,tables,scores  = read_files(l)
+            p,scores  = read_files(l)
             l+=1
         except IOError:
             break
         
         u_lines = get_u_lines(scores)
+        
 
         for low_hkA in range(0, 16):
             for low_hkB in range(0, 16):
@@ -142,6 +148,7 @@ def round_2_attack():
                             line = (tables[(2-i)%4] + (hx[i]//delta)) % 64
                             if (line in u_lines):
                                 lk[i][comb_index] = -1
+                                
 
 
     # Pass data from lk to lk_list
@@ -187,20 +194,25 @@ def get_u_lines(scores):
 def read_files(l):
     
     meas_file = open("side_channel_info/meas#" + str(l) + ".out", "r")
-    tab_file = open("side_channel_info/tables#" + str(l) + ".out", "r")
 
     plaintext_raw = meas_file.readline()
     plaintext_raw = plaintext_raw[:-2]
 
     plaintext = [int(i) for i in plaintext_raw.split('.')]
-    tables = [int(i) for i in tab_file]
     scores = [int(i) for i in meas_file]
 
     meas_file.close()
+    
+    return plaintext, scores
+
+
+def read_table():
+    tab_file = open("side_channel_info/table.out", "r")
+
+    tables = [int(i) for i in tab_file]
     tab_file.close()
 
-    return plaintext, tables, scores
-
+    return tables
 
 
 
