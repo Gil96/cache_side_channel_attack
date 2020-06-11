@@ -1,0 +1,2 @@
+This image explains why vic executable depends on the amound of code written in the text section, which impacts the L1 line and offset taken by the tables that belong to the static (global) section
+

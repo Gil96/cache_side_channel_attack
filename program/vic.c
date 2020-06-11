@@ -28,18 +28,19 @@ int main(int argc, char *argv[]) {
 
     cpu_setup();
 
-    // Place the secret key here
+
 	unsigned char zero_key[] =   
         {0,0,0,0
         ,0,0,0,0
         ,0,0,0,0
         ,0,0,0,0};
 
+    // Place the secret key here
     unsigned char secret_key[] = 
-        {0,0,0,0
-        ,0,0,0,0
-        ,0,0,0,0
-        ,0,0,0,0};
+        {4,123,43,51
+        ,55,66,233,21
+        ,0,0,1,3
+        ,32,31,41,61};
 
     unsigned char * chosen_key;
 
@@ -50,7 +51,6 @@ int main(int argc, char *argv[]) {
     if(argv[2] != NULL){
         chosen_key = zero_key;
     }
-
 
 // output configuration
     unsigned char * out = malloc(sizeof(char) * 16); 

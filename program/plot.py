@@ -2,11 +2,12 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 
-x, y = np.loadtxt('diff_score.out', delimiter=',', unpack=True)
+x = np.loadtxt('side_channel_info/table.out')
 
-plt.plot(x,y)
+plt.plot(x)
 plt.ylabel('Y value')
 plt.xlabel('X value')
 plt.title('title')
 
 plt.show()
+

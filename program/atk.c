@@ -115,59 +115,22 @@ int main(void) {
             if (PAPI_stop(EventSet, values) != PAPI_OK)
                 handle_error(1,"stop");
 
-
-            // printf("%d_%lld  ", min/C_BLOCK_SIZE, values[0]);
             if(j%2==0){
                 final_score[min/C_BLOCK_SIZE]+= values[0];
-                // line_score[min/C_BLOCK_SIZE][j] = values[0]; // not required only ++ and then /NMEAS 
             }
             if(j%2==1){
                 final_score2[min/C_BLOCK_SIZE]+= values[0];
-                // line_score2[min/C_BLOCK_SIZE][j] = values[0];                
             }         
         }
         wait(NULL);
     }
 
 
-    // get diff final score
-    for (int l = 0; l<L1_LINES; l++){
-        final_score[l] = (final_score2[l] - final_score[l]) /N_MEAS;
-    }
-
-
-    
-
-    // get table lines
-    // assuming offset 0 or 32
-    
-    double max = 0;
-    int line_max = 0;
-
-    for (int l = 0; l<L1_LINES; l++){
-        if(final_score[l]>max){
-            max = final_score[l];
-            line_max = l;
-        }
-    }
-
-    // write in table file
     logfile = fopen("side_channel_info/table.out","w");
-    for (int l = 0; l<4; l++){
-        fprintf(logfile,"%d\n", (l*16+line_max)%64);
-    }
-    fclose(logfile);
-
-
-    // write in diff file for plotting
-    logfile = fopen("diff_score.out","w");
     for (int l = 0; l<L1_LINES; l++){
-        fprintf(logfile,"%d,%f\n",l,final_score[l]);
+        fprintf(logfile,"%f\n", (final_score2[l] - final_score[l]) /N_MEAS);
     }
     fclose(logfile);
-
-
-
 
 
 
