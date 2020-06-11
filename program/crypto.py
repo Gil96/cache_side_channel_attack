@@ -115,12 +115,6 @@ def round_1_attack():
                 new_score = scores[hline]
                 hk_score[bi][hki] += new_score
 
-    # stores delta keys with highest score per byte
-    # for i in range(len(hk_score)):
-    #     candidate_k[i] = sorted(range(len(hk_score[i])), key = lambda sub: hk_score[i][sub])[-delta:] 
-
-    #print(hk_score)
-
     for item in (hk_score):
         a = []
         for index in range(len(item)):
