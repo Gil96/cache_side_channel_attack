@@ -26,8 +26,17 @@ unsigned char * convert_plaintext(char * input);
 
 int main(int argc, char *argv[]) {
 
+
+
+
     cpu_setup();
 
+
+
+    /*
+    Warning! - malloc() functions
+    All the variables created using a malloc() map different L1 lines in different vic.c executions
+    */
 
 	unsigned char zero_key[] =   
         {0,0,0,0

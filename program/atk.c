@@ -65,7 +65,7 @@ int main(void) {
 
 
 
-    printf("v_line:%d\n",v_line);
+    printf("v_line:%d\n",v_line); // must be considered in the extractions
 
 
     for(int j = 0; j < N_MEAS_T ; j++){
@@ -177,7 +177,12 @@ int main(void) {
                 if (PAPI_stop(EventSet, values) != PAPI_OK)
                     handle_error(1,"stop");
 
-                fprintf(logfile,"%lld\n", values[0]);      
+
+                // fprintf() WARNING!!
+                // can be placed outside, in order to loop 
+                // to perform the same amount of SCI extractions
+                // and victim perform a less number of encryptions 
+                fprintf(logfile,"%lld\n", values[0]);    
         }
 
         fclose(logfile);
@@ -188,9 +193,6 @@ int main(void) {
     return 0;
 
 }
-
-
-
 
 
 void get_plaintexts_t( char * plaintext, char * plaintext2, int table_index, int min, int max){
@@ -234,8 +236,12 @@ void get_p(char * plaintext){
     for (int i= 0; i<16; i++){
         rand_value = random()%256;    // change it to better random mech 
         snprintf(num, sizeof(num)+1, "%i.", rand_value); // +1 because of '\0'
-        strcat(plaintext, num);
+        // to uncomment
+        strcat(plaintext, num); 
     }
+    // to delete
+    // strcpy(plaintext, "226.249.59.155.129.247.174.93.155.122.235.166.203.71.151.15.");
+
 }
 
 
