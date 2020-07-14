@@ -10,7 +10,7 @@
 
 #include "include/aes.h"
 
-#define REPETITIONS 1000000
+#define REPETITIONS 300000
 #define LOGICAL_CORE 7            // logical core where this process will run on
 #define W 8                       //  associativity number of L1
 #define STRIDE (SIZE32KB/W)       //  step distance between the consecutive accesses in order to fill a particular line of L1
@@ -20,17 +20,10 @@ void cpu_setup();
 
 unsigned char * convert_plaintext(char * input);
 
-
-
-
-
 int main(int argc, char *argv[]) {
 
 
-
-
     cpu_setup();
-
 
 
     /*
@@ -73,14 +66,24 @@ int main(int argc, char *argv[]) {
     if (AES_set_encrypt_key( chosen_key, 128, key) != 0)
         printf("AES_set_encrypt_key ERROR");
     
-
 // AES-128bit ECB encryption
     for(register int rep = 0; rep < REPETITIONS; rep++){
         AES_encrypt(p, out, key);
     }
+    
 
     free(out);
     free(key);
+
+
+
+
+    // add this only if we want to change the offset
+    for(;;){break;}
+    for(;;){break;}
+    for(;;){break;}
+
+
 
     return 0;
 }

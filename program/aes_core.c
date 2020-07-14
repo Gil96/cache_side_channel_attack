@@ -752,12 +752,12 @@ int AES_set_encrypt_key(const unsigned char *userKey, const int bits,
 
 
 //     // TO DELETE  // remember also to erase the include above
-    uint64_t n = (uintptr_t) Te0;
-    uint64_t x = (n>>6)%(32*1024)%64;
-    printf("\tLine of T0e:%d\n", (int) x);
-     n = (uintptr_t) (Te0);
-     x = n%(32*1024)%64;
-    printf("\t Offset of T0e:%d\n", (int) x);  
+    // uint64_t n = (uintptr_t) Te0;
+    // uint64_t x = (n>>6)%(32*1024)%64;
+    // printf("\tLine of T0e:%d\n", (int) x);
+    //  n = (uintptr_t) (Te0);
+    //  x = n%(32*1024)%64;
+    // printf("\t Offset of T0e:%d\n", (int) x);  
 //     //------------ 
 
 

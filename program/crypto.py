@@ -9,6 +9,7 @@
 
 
 import math
+import statistics as st
 from pyfinite import ffield  # To perform GF(256) multiplications
 
 
@@ -71,24 +72,42 @@ def table_offset_attack():
     global t0e_line
 
     tab_file = open("side_channel_info/table.out", "r")
-    table_scores = [float(i) for i in tab_file]
+    table_scores = [int(i) for i in tab_file]
     tab_file.close()
 
-    table_indices_sorted = sorted(range(len(table_scores)), key=lambda k: table_scores[k])
-    # print(table_indices_sorted)
-    top_2 = table_indices_sorted[-2:]
-    
-    
+    # table_scores = [item for item in table_scores if item >= 0]
+
+    sum = [0 for x in range(16)]
+    for i in range(16):
+        for j in range(4):
+            sum[i] += table_scores[i+j*16]
+    print("sum:", sum)
+
+    sum_sorted = sorted(range(len(sum)), key=lambda k: sum[k])
+    sum_top_2 = sum_sorted[-2:]
+
+
     # Offset checking (0 or 32bit)
     offset_elem = 0
-    t0e_line = top_2[1]
-    if (abs(top_2[0]-top_2[1]) == 1):
-        top_2.sort()
-        t0e_line = top_2[0]
+    set_i = sum_top_2[1]
+    if (abs(sum_top_2[0]-sum_top_2[1]) == 1 and is_list_pos(sorted(sum)[-2:]) == True):
+        sum_top_2.sort()
+        set_i = sum_top_2[0]
         offset_elem = 8
 
 
+
+    #get tables index line
+    set_lines = []
+    for i in range(4):
+        set_lines.append(table_scores[set_i+i*16])
     
+    print("set_lines",set_lines)
+
+    minn = min(set_lines)
+    t3_line_index = [i for i, j in enumerate(set_lines) if j == minn]
+    t0_line_index = (t3_line_index[0]+1)%4
+    t0e_line = set_i + (t0_line_index*16)
     
     # Table element structure: (table index, element index) : L1 line
     #   Warning: It assumes all the tables are consequent in memory
@@ -102,7 +121,7 @@ def table_offset_attack():
     #print(table_scores)
     #print("first| second | offset ")
     #print(first, second, offset_elements)
-    #print(table_elem_dic)
+    # print(table_elem_dic)
 
 
 
@@ -172,8 +191,11 @@ def round_2_attack():
             break
 
 
-        # This phase has to consider the offset of the attack
-        # And perform only the min iterations for the key discovery
+        # get the lines scores below the 1-standard-deviation
+        avg = st.mean(scores)
+        dev = st.stdev(scores)
+        limit =  int(avg-1*dev)
+        unsed_lines = [index for index,elem in enumerate (scores) if elem <= limit]
         
         #consider using byarray instead of int
         for low_hkA in range(0, (n_comb)):
@@ -206,7 +228,9 @@ def round_2_attack():
                         comb_index = (low_hkA<<(n_bits*3)) + (low_hkB<<(n_bits*2)) + (low_hkC<<(n_bits*1)) + low_hkD
                         for i in range(0,4):
                             hline = table_elem_dic[((2-i)%4, hx[i])]
-                            if (scores[hline] < line_value_threshold):
+                            # Change (Not checking the scores p/ line against a threshold 
+                            # but if it's below 1 of deviation)
+                            if (hline in unsed_lines):
                                 lk[i][comb_index] = -1
 
 
@@ -257,6 +281,16 @@ def read_files(l):
     
     return plaintext, scores
 
+
+
+# Checks whether a list contains all the elements positive or not
+
+def is_list_pos(lst):
+    for item in lst:
+        if (item < 0):
+            return False
+    return True
+    
 
 
 # Program execution
