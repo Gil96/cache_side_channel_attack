@@ -75,40 +75,49 @@ def table_offset_attack():
     table_scores = [int(i) for i in tab_file]
     tab_file.close()
 
-    # table_scores = [item for item in table_scores if item >= 0]
-
+    # Creating of sum - structure containg the scores of each group of 4 lines 16 lines apart
     sum = [0 for x in range(16)]
     for i in range(16):
         for j in range(4):
             sum[i] += table_scores[i+j*16]
     print("sum:", sum)
 
-    sum_sorted = sorted(range(len(sum)), key=lambda k: sum[k])
-    sum_top_2 = sum_sorted[-2:]
+    # Creating sum structure average
+    sum_avg = st.mean(sum)
+    print("sum_avg", sum_avg)
 
+    # Creating structure containg the 2 highest scores of sum ~ sum_top_2
+    # Creating structure containg the 2 indices of sum containing the highest scores ~ sum_top_2_index
+    
+    sum_top_2 = sorted(sum)[-2:]
+    sum_top_2_index = sorted(range(len(sum)), key=lambda k: sum[k])[-2:]
+
+    print("sum_top_2", sum_top_2)
 
     # Offset checking (0 or 32bit)
     offset_elem = 0
-    set_i = sum_top_2[1]
-    if (abs(sum_top_2[0]-sum_top_2[1]) == 1 and is_list_pos(sorted(sum)[-2:]) == True):
-        sum_top_2.sort()
-        set_i = sum_top_2[0]
+    set_i = sum_top_2_index[1]
+    #under testing...
+    if (are_lines_neighboors(sum_top_2_index,len(sum)) and is_above_avg(sum_avg,sum_top_2)):
+        sum_top_2_index.sort()
+        set_i = sum_top_2_index[0]
         offset_elem = 8
 
 
 
-    #get tables index line
+    # Get L1 lines used by the beginning of each table
     set_lines = []
     for i in range(4):
         set_lines.append(table_scores[set_i+i*16])
     
-    print("set_lines",set_lines)
 
+    # Get T0 L1 line ~ (and consequently T1,T2,T3)
     minn = min(set_lines)
     t3_line_index = [i for i, j in enumerate(set_lines) if j == minn]
     t0_line_index = (t3_line_index[0]+1)%4
     t0e_line = set_i + (t0_line_index*16)
     
+
     # Table element structure: (table index, element index) : L1 line
     #   Warning: It assumes all the tables are consequent in memory
     for t in range(4):
@@ -141,7 +150,7 @@ def round_1_attack():
         except IOError:
             break
 
-
+        # For each meas. iteration each hip. key byte gets updated with a new score (nº of clock cycles)
         for bi, byte in enumerate (hk_score):
             for hki in range(len(byte)):
                 hx = p[bi] ^ hki   
@@ -285,12 +294,21 @@ def read_files(l):
 
 # Checks whether a list contains all the elements positive or not
 
-def is_list_pos(lst):
+def is_above_avg(avg, lst):
     for item in lst:
-        if (item < 0):
+        if (item < avg):
             return False
     return True
     
+
+def are_lines_neighboors(lst,len):
+    statement1 = ((lst[0] + 1) %len ==lst[1])
+    statement2 = ((lst[1] + 1) %len ==lst[0])
+
+    print("statement1", statement1)
+    print("statement2", statement2)
+    
+    return statement1 or statement2
 
 
 # Program execution

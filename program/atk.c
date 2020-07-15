@@ -69,13 +69,10 @@ int main(void) {
 
         if(j%2 == 0){
             get_plaintexts_t(plaintext,plaintext2,j,0,16);
-
         }
         if(j%2 == 1) {
             strcpy(plaintext,plaintext2);
-
         }
-
 
         args[0] = "./vic";
         args[1] = plaintext;
@@ -86,7 +83,6 @@ int main(void) {
         if ( (pid = fork())== 0) 
             execv("./vic", args);
 
-        // usleep(WAIT_TIME_T);
 
         for (iii = 0; iii < OUTTER_REP_T; iii++) {
     
