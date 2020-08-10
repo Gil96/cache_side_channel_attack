@@ -7,8 +7,8 @@ Attack Features: (might change over time)
 - T-BOX (256* 4Bytes)
 - L1-DATA cache
 - Plaintext known & inputted
-- Table Addresses known (at least one)
-  - Table offsets known (at least one)
+- Table Addresses unknown
+- Table Offsets unknown
   
   
  
