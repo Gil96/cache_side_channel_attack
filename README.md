@@ -12,6 +12,7 @@ Attack Features: (might change over time)
   
   
  
+
 Attack Procedure:
 ```
 (required the instalation of the package pyfinite)
@@ -19,4 +20,12 @@ Attack Procedure:
 > make
 > ./atk
 > python3 crypto.py
+```
+
+
+Project Structure:
+```
+/usr - contains OPENSSL 0.9.
+/program - contains the measurement_program, victim, crypto_analysis_program, measurement data
+/others  - contains related information about this project
 ```

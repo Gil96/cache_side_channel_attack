@@ -21,8 +21,11 @@
 #ifndef OPENSSL_THREADS
 # define OPENSSL_THREADS
 #endif
-#ifndef OPENSSL_NO_DYNAMIC_ENGINE
-# define OPENSSL_NO_DYNAMIC_ENGINE
+#ifndef OPENSSL_NO_ASM
+# define OPENSSL_NO_ASM
+#endif
+#ifndef OPENSSL_NO_STATIC_ENGINE
+# define OPENSSL_NO_STATIC_ENGINE
 #endif
 
 /* The OPENSSL_NO_* macros are also defined as NO_* if the application
@@ -44,8 +47,6 @@
 # endif
 #endif
 
-#define OPENSSL_CPUID_OBJ
-
 /* crypto/opensslconf.h.in */
 
 /* Generate 80386 code? */
@@ -53,8 +54,8 @@
 
 #if !(defined(VMS) || defined(__VMS)) /* VMS uses logical names instead */
 #if defined(HEADER_CRYPTLIB_H) && !defined(OPENSSLDIR)
-#define ENGINESDIR "/usr/lib/engines"
-#define OPENSSLDIR "/usr/ssl"
+#define ENGINESDIR "/usr/local/ssl/lib/engines"
+#define OPENSSLDIR "/usr/local/ssl"
 #endif
 #endif
 

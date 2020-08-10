@@ -1,6 +1,10 @@
-/* crypto/aes/aes.h -*- mode:C; c-file-style: "eay" -*- */
+/* crypto/pqueue/pqueue.h */
+/* 
+ * DTLS implementation written by Nagendra Modadugu
+ * (nagendra@cs.stanford.edu) for the OpenSSL project 2005.  
+ */
 /* ====================================================================
- * Copyright (c) 1998-2002 The OpenSSL Project.  All rights reserved.
+ * Copyright (c) 1999-2005 The OpenSSL Project.  All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -17,12 +21,12 @@
  * 3. All advertising materials mentioning features or use of this
  *    software must display the following acknowledgment:
  *    "This product includes software developed by the OpenSSL Project
- *    for use in the OpenSSL Toolkit. (http://www.openssl.org/)"
+ *    for use in the OpenSSL Toolkit. (http://www.OpenSSL.org/)"
  *
  * 4. The names "OpenSSL Toolkit" and "OpenSSL Project" must not be used to
  *    endorse or promote products derived from this software without
  *    prior written permission. For written permission, please contact
- *    openssl-core@openssl.org.
+ *    openssl-core@OpenSSL.org.
  *
  * 5. Products derived from this software may not be called "OpenSSL"
  *    nor may "OpenSSL" appear in their names without prior written
@@ -31,7 +35,7 @@
  * 6. Redistributions of any form whatsoever must retain the following
  *    acknowledgment:
  *    "This product includes software developed by the OpenSSL Project
- *    for use in the OpenSSL Toolkit (http://www.openssl.org/)"
+ *    for use in the OpenSSL Toolkit (http://www.OpenSSL.org/)"
  *
  * THIS SOFTWARE IS PROVIDED BY THE OpenSSL PROJECT ``AS IS'' AND ANY
  * EXPRESSED OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
@@ -47,43 +51,45 @@
  * OF THE POSSIBILITY OF SUCH DAMAGE.
  * ====================================================================
  *
+ * This product includes cryptographic software written by Eric Young
+ * (eay@cryptsoft.com).  This product includes software written by Tim
+ * Hudson (tjh@cryptsoft.com).
+ *
  */
 
-#ifndef HEADER_AES_LOCL_H
-#define HEADER_AES_LOCL_H
-
-#include "include/e_os2.h"
-
-#ifdef OPENSSL_NO_AES
-#error AES is disabled.
-#endif
+#ifndef HEADER_PQUEUE_H
+#define HEADER_PQUEUE_H
 
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
-#if defined(_MSC_VER) && !defined(_M_IA64) && !defined(OPENSSL_SYS_WINCE)
-# define SWAP(x) (_lrotl(x, 8) & 0x00ff00ff | _lrotr(x, 8) & 0xff00ff00)
-# define GETU32(p) SWAP(*((u32 *)(p)))
-# define PUTU32(ct, st) { *((u32 *)(ct)) = SWAP((st)); }
-#else
-# define GETU32(pt) (((u32)(pt)[0] << 24) ^ ((u32)(pt)[1] << 16) ^ ((u32)(pt)[2] <<  8) ^ ((u32)(pt)[3]))
-# define PUTU32(ct, st) { (ct)[0] = (u8)((st) >> 24); (ct)[1] = (u8)((st) >> 16); (ct)[2] = (u8)((st) >>  8); (ct)[3] = (u8)(st); }
-#endif
+#include <openssl/pq_compat.h>
 
-#ifdef AES_LONG
-typedef unsigned long u32;
-#else
-typedef unsigned int u32;
-#endif
-typedef unsigned short u16;
-typedef unsigned char u8;
+typedef struct _pqueue *pqueue;
 
-#define MAXKC   (256/32)
-#define MAXKB   (256/8)
-#define MAXNR   14
+typedef struct _pitem
+	{
+	PQ_64BIT priority;
+	void *data;
+	struct _pitem *next;
+	} pitem;
 
-/* This controls loop-unrolling in aes_core.c */
-#undef FULL_UNROLL
+typedef struct _pitem *piterator;
 
-#endif /* !HEADER_AES_LOCL_H */
+pitem *pitem_new(PQ_64BIT priority, void *data);
+void   pitem_free(pitem *item);
+
+pqueue pqueue_new(void);
+void   pqueue_free(pqueue pq);
+
+pitem *pqueue_insert(pqueue pq, pitem *item);
+pitem *pqueue_peek(pqueue pq);
+pitem *pqueue_pop(pqueue pq);
+pitem *pqueue_find(pqueue pq, PQ_64BIT priority);
+pitem *pqueue_iterator(pqueue pq);
+pitem *pqueue_next(piterator *iter);
+
+void   pqueue_print(pqueue pq);
+
+#endif /* ! HEADER_PQUEUE_H */

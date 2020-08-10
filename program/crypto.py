@@ -3,7 +3,7 @@
 # Description:
 #   Program that handles the crypto-analysis phase of the side-channel attack
 #       1Round Attack - Tromer score approach, choosing the lines with the highest average score
-#       2Round Attack - Naive approch using threshold to cut all the possible 4keyByte values
+#       2Round Attack - Naive approch using below 1 standard deviation interval to cut all the possible 4keyByte values
 
 
 
@@ -11,9 +11,11 @@
 import math
 import statistics as st
 from pyfinite import ffield  # To perform GF(256) multiplications
+from itertools import combinations
 
 
 # Global Variables
+
 
 delta = 16                                                              # Max number of table elements in a L1-D cache block
 s = [                                                                   # Sbox - 256 
@@ -82,26 +84,55 @@ def table_offset_attack():
             sum[i] += table_scores[i+j*16]
     print("sum:", sum)
 
-    # Creating sum structure average
-    sum_avg = st.mean(sum)
-    print("sum_avg", sum_avg)
 
-    # Creating structure containg the 2 highest scores of sum ~ sum_top_2
-    # Creating structure containg the 2 indices of sum containing the highest scores ~ sum_top_2_index
-    
-    sum_top_2 = sorted(sum)[-2:]
-    sum_top_2_index = sorted(range(len(sum)), key=lambda k: sum[k])[-2:]
 
-    print("sum_top_2", sum_top_2)
+    # Get list containing all the indexes of items above 2 st dev
+    # In a negative outcome it gets the indexes above 1 st dev
+    # (This solution is under evaluation)
+    sum_index_st = get_standard_deviation_elem(sum, 2 ,"above")
+    if (len(sum_index_st) == 0):
+        sum_index_st = get_standard_deviation_elem(sum, 1 ,"above")
 
-    # Offset checking (0 or 32bit)
+
+
+
+    # If possible, get the tuple containing the 2 neighboor lines
+    sum_index_tuple = get_neighboors(sum_index_st, len(sum))
+
+    print(sum_index_st)
+    print(sum_index_tuple)
+
+    # Offset checking (o or 32bit)
     offset_elem = 0
-    set_i = sum_top_2_index[1]
-    #under testing...
-    if (are_lines_neighboors(sum_top_2_index,len(sum)) and is_above_avg(sum_avg,sum_top_2)):
-        sum_top_2_index.sort()
-        set_i = sum_top_2_index[0]
+    set_i = sum_index_st[0]
+    if (sum_index_tuple):
+        set_i = sum_index_tuple[0]
         offset_elem = 8
+
+
+
+
+
+    # # Creating sum structure average
+    # sum_avg = st.mean(sum)
+    # print("sum_avg", sum_avg)
+
+    # # Creating structure containg the 2 highest scores of sum ~ sum_top_2
+    # # Creating structure containg the 2 indices of sum containing the highest scores ~ sum_top_2_index
+    
+    # sum_top_2 = sorted(sum)[-2:]
+    # sum_top_2_index = sorted(range(len(sum)), key=lambda k: sum[k])[-2:]
+
+    # print("sum_top_2", sum_top_2)
+
+    # # Offset checking (0 or 32bit)
+    # offset_elem = 0
+    # set_i = sum_top_2_index[1]
+    # #under testing...
+    # if (are_lines_neighboors(sum_top_2_index,len(sum)) and is_above_avg(sum_avg,sum_top_2)):
+    #     sum_top_2_index.sort()
+    #     set_i = sum_top_2_index[0]
+    #     offset_elem = 8
 
 
 
@@ -159,8 +190,8 @@ def round_1_attack():
                 hk_score[bi][hki] += new_score
 
 
-    # for i in range(256):
-    #     print(str(i) + " : " + str(hk_score[0][i]))
+    # for i in range(32):
+    #     print(str(i*8) + " : " + str(hk_score[2][i*8]))
 
     for item in (hk_score):
         a = []
@@ -181,6 +212,11 @@ def round_1_attack():
 
 def round_2_attack():
 
+    # This part of the attack is an open solution
+    # We are able to use other 2-Round equations in order to help us to dig into the correct key
+    # Lowering the required number of measurements
+    # Check TODO_.txt for details
+
 
     # Local Variables
     F = ffield.FField(8)                                                # Galouis Field(256)
@@ -188,7 +224,7 @@ def round_2_attack():
     hk = [0 for x in range(16)]                                         # Hipotetical key
     n_comb = 16 - offset_elem                                           # number of possible combinations of each key byte | e.g: 0->16 | 8->8 | 12->4 | 14->2
     n_bits = int(math.log2(n_comb))                                     # number of bits from each key byte that remain unknown
-    lk = [[x for x in range(n_comb**4)] for y in range(4)]              # Structure containing all the combinations from the 4 equations
+    lk = [[0 for x in range(n_comb**4)] for y in range(4)]              # Structure containing all the combinations from the 4 equations
     l=0                                                                 # Measurement file index
 
     
@@ -201,10 +237,7 @@ def round_2_attack():
 
 
         # get the lines scores below the 1-standard-deviation
-        avg = st.mean(scores)
-        dev = st.stdev(scores)
-        limit =  int(avg-1*dev)
-        unsed_lines = [index for index,elem in enumerate (scores) if elem <= limit]
+        unused_lines = get_standard_deviation_elem( scores, -1, "below")
         
         #consider using byarray instead of int
         for low_hkA in range(0, (n_comb)):
@@ -237,29 +270,22 @@ def round_2_attack():
                         comb_index = (low_hkA<<(n_bits*3)) + (low_hkB<<(n_bits*2)) + (low_hkC<<(n_bits*1)) + low_hkD
                         for i in range(0,4):
                             hline = table_elem_dic[((2-i)%4, hx[i])]
-                            # Change (Not checking the scores p/ line against a threshold 
-                            # but if it's below 1 of deviation)
-                            if (hline in unsed_lines):
-                                lk[i][comb_index] = -1
+                            if (hline in unused_lines):
+                                lk[i][comb_index] += 1
 
 
     # Retrieve the remaining combinations from lk[]
     lk_list = [[]for y in range(4)]
     for lk_index, lk_item in enumerate(lk):
-        for comb in lk_item:
-            if comb != -1:
-                lk_list[lk_index].append(comb)    
+        for comb_index, comb in enumerate (lk_item):
+            if comb == 0:
+                lk_list[lk_index].append(comb_index)
     
-
 
     # Registering discovered key bytes
     for lk_index, lk_item in enumerate(lk_list):
         set_final_key(fk, lk_index,lk_item, n_comb, n_bits)
-
-
-
-
-
+        
 
 # Auxiliar Functions
 
@@ -293,7 +319,6 @@ def read_files(l):
 
 
 # Checks whether a list contains all the elements positive or not
-
 def is_above_avg(avg, lst):
     for item in lst:
         if (item < avg):
@@ -309,6 +334,36 @@ def are_lines_neighboors(lst,len):
     print("statement2", statement2)
     
     return statement1 or statement2
+
+
+def get_neighboors(index_list, list_len):
+
+    index_list_tuples = list(combinations(index_list,2))
+
+    for item in index_list_tuples:
+        
+        if (((item[0] + 1) %list_len ==item[1]) or ((item[1] + 1) %list_len == item[0])):
+            return item
+
+    return False
+
+
+
+def get_standard_deviation_elem(list_elem, num_stand_dev, direction):
+
+    avg = st.mean(list_elem)
+    dev = st.stdev(list_elem)
+    limit =  int(avg+num_stand_dev*dev)
+
+    if (direction == "below"):
+        return [index for index,elem in enumerate (list_elem) if elem <= limit]
+
+    elif (direction == "above"):
+        return [index for index,elem in enumerate (list_elem) if elem >= limit]
+
+    else:
+        print("An error occured on get_standard_deviation_elem")
+
 
 
 # Program execution

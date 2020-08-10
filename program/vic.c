@@ -8,7 +8,10 @@
 #include <inttypes.h>
 #include <string.h>
 
-#include "include/aes.h"
+
+// Aes header needs to link with the one on /usr/
+#include "aes.h"
+// #include <openssl/aes.h>
 
 #define REPETITIONS 300000
 #define LOGICAL_CORE 7            // logical core where this process will run on
@@ -24,7 +27,6 @@ int main(int argc, char *argv[]) {
 
 
     cpu_setup();
-
 
     /*
     Warning! - malloc() functions
@@ -61,7 +63,6 @@ int main(int argc, char *argv[]) {
     AES_KEY * key = malloc(sizeof(AES_KEY));  
     key->rounds =  10;                          
     
-
 // creates the round key from the secret key
     if (AES_set_encrypt_key( chosen_key, 128, key) != 0)
         printf("AES_set_encrypt_key ERROR");
@@ -71,17 +72,8 @@ int main(int argc, char *argv[]) {
         AES_encrypt(p, out, key);
     }
     
-
     free(out);
     free(key);
-
-
-
-
-    // add this only if we want to change the offset
-    for(;;){break;}
-    for(;;){break;}
-
 
 
     return 0;
