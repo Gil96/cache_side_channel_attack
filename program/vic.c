@@ -41,10 +41,10 @@ int main(int argc, char *argv[]) {
 
     // Place the secret key here
     unsigned char secret_key[] = 
-        {4,123,43,51
-        ,55,66,233,21
-        ,0,0,1,3
-        ,32,31,41,61};
+        {20,20,20,20,
+        20,20,20,20,
+        20,20,20,20,
+        20,20,20,20};
 
     unsigned char * chosen_key;
 

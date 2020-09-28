@@ -12,7 +12,7 @@
 #include <time.h>
 
 
-#define N_MEAS_T 200
+#define N_MEAS_T 100  // original value: 200
 #define OUTTER_REP_T 200     //  number of times a measurement of a given L1 line is performed
 #define INNER_REP_T 150     //  number of times a measurement of a given L1 line is performed
 
@@ -84,7 +84,7 @@ int main(void) {
 
         // usleep(WAIT_TIME_T);
 
-    
+
         for (iii = 0; iii < OUTTER_REP_T; iii++) {
     
             for ( min=0; min<SIZE32KB/W; min+=C_BLOCK_SIZE) {
@@ -256,7 +256,7 @@ void get_p(char * plaintext){
         // to uncomment
         strcat(plaintext, num); 
     }
-    // to delete
+    // to delete || DEBUG
     // strcpy(plaintext, "126.70.226.1.192.134.136.57.174.126.232.97.253.14.174.67.");
 
 }

@@ -114,8 +114,8 @@ def table_offset_attack():
 
 
     # # Creating sum structure average
-    # sum_avg = st.mean(sum)
-    # print("sum_avg", sum_avg)
+    sum_avg = st.mean(sum)
+    print("sum_avg", sum_avg)
 
     # # Creating structure containg the 2 highest scores of sum ~ sum_top_2
     # # Creating structure containg the 2 indices of sum containing the highest scores ~ sum_top_2_index
