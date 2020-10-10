@@ -2,12 +2,13 @@
 
 # Description:
 #   Program that handles the crypto-analysis phase of the side-channel attack
-#       1Round Attack - Tromer score approach, choosing the lines with the highest average score
-#       2Round Attack - Naive approch using below 1 standard deviation interval to cut all the possible 4keyByte values
+#       1Round Attack - each key byte value is linked to a serie of timings from the lookups from the 0-th Round(lines w/ timing above avg+1dev are ignored)
+#       2Round Attack - each group of key is linked to a serie of timings from the table lookups on the 1-st Round (lines w/ timing above avg+1dev are ignored)
 
 
 
 
+# Imports
 import math
 import statistics as st
 from pyfinite import ffield  # To perform GF(256) multiplications
@@ -38,7 +39,7 @@ s = [                                                                   # Sbox -
         ]
 
 
-# Table/Offset Attack Variables:
+# L1D T-box Mapping phase extension variables:
 table_elem_dic = {}                                                 # dictionary that links table & element index to the respective L1 line that mapps it
 t0e_line = 0                                                        # L1 line of beginning of enc. table 0 
 offset_elem = 0                                                     # minimum offset - i.e.: the minimum element shift - example: shift of 14 in a L1 block means offset_elem = 2
@@ -65,6 +66,9 @@ def main():
     print("final key:", fk)
 
 
+    write_file_fk(fk)
+
+
 
 
 # Implement table/offset attack
@@ -73,73 +77,85 @@ def table_offset_attack():
     global offset_elem
     global t0e_line
 
-    tab_file = open("side_channel_info/table.out", "r")
-    table_scores = [int(i) for i in tab_file]
-    tab_file.close()
+    p1_lines = [[0,0] for i in range(64)]
+    p2_lines = [[0,0] for i in range(64)]
+    diff_lines = [0 for i in range(64)]
+
+    l = -1
+    while(True):
+        try:
+            # Get timings from the current side-channel table file
+            l+=1
+            table_timings = read_table_file(l)
+            
+        except IOError:
+            break
+
+        # Get average and standard deviation values 
+        avg = st.mean(table_timings)
+        st_dev = st.stdev(table_timings)
+
+
+        # Excluding timings higher than (1 st. dev + average) and averaging each line by type of plaintext
+        for index, timing in enumerate(table_timings):
+
+            if (timing > (avg + 1*st_dev)):
+                continue
+
+            if (l%2 == 0):
+                p_lines = p1_lines
+
+            if (l%2 == 1):
+                p_lines = p2_lines
+
+            weight_avg(p_lines, index, timing)
+            
+
+        
+
+
+
+    # Build timings from the difference between the averaged plaintext p1 and p2 on p1_lines
+    for i in range(len(p1_lines)):
+        diff_lines[i] = int((p2_lines[i][0] - p1_lines[i][0]) / l)
+
+
+    # Debug section
+    # print('p1:', p1_lines)
+    # print('p2:', p2_lines)
+    # print('diff',diff_lines)
+
+
 
     # Creating of sum - structure containg the scores of each group of 4 lines 16 lines apart
     sum = [0 for x in range(16)]
     for i in range(16):
         for j in range(4):
-            sum[i] += table_scores[i+j*16]
-    print("sum:", sum)
-
+            sum[i] += diff_lines[i+j*16]
 
 
     # Get list containing all the indexes of items above 2 st dev
     # In a negative outcome it gets the indexes above 1 st dev
-    # (This solution is under evaluation)
     sum_index_st = get_standard_deviation_elem(sum, 2 ,"above")
     if (len(sum_index_st) == 0):
         sum_index_st = get_standard_deviation_elem(sum, 1 ,"above")
 
-
-
-
     # If possible, get the tuple containing the 2 neighboor lines
     sum_index_tuple = get_neighboors(sum_index_st, len(sum))
 
-    print(sum_index_st)
-    print(sum_index_tuple)
 
-    # Offset checking (o or 32bit)
+    # Offset checking (0 or 32bit)
     offset_elem = 0
-    set_i = sum_index_st[0]
+    set_i = sum.index(max(sum),0, len(sum))
     if (sum_index_tuple):
-        set_i = sum_index_tuple[0]
         offset_elem = 8
-
-
-
-
-
-    # # Creating sum structure average
-    sum_avg = st.mean(sum)
-    print("sum_avg", sum_avg)
-
-    # # Creating structure containg the 2 highest scores of sum ~ sum_top_2
-    # # Creating structure containg the 2 indices of sum containing the highest scores ~ sum_top_2_index
-    
-    # sum_top_2 = sorted(sum)[-2:]
-    # sum_top_2_index = sorted(range(len(sum)), key=lambda k: sum[k])[-2:]
-
-    # print("sum_top_2", sum_top_2)
-
-    # # Offset checking (0 or 32bit)
-    # offset_elem = 0
-    # set_i = sum_top_2_index[1]
-    # #under testing...
-    # if (are_lines_neighboors(sum_top_2_index,len(sum)) and is_above_avg(sum_avg,sum_top_2)):
-    #     sum_top_2_index.sort()
-    #     set_i = sum_top_2_index[0]
-    #     offset_elem = 8
-
+        set_i = sum_index_tuple[0]
 
 
     # Get L1 lines used by the beginning of each table
     set_lines = []
     for i in range(4):
-        set_lines.append(table_scores[set_i+i*16])
+        set_lines.append(diff_lines[set_i+i*16])
     
 
     # Get T0 L1 line ~ (and consequently T1,T2,T3)
@@ -157,65 +173,67 @@ def table_offset_attack():
             table_elem_dic[(t,e)] = line
 
 
+    # Debug Section
     #print(table_indices_sorted)
     #print(table_scores)
     #print("first| second | offset ")
-    #print(first, second, offset_elements)
+    # print(first, second, offset_elements)
     # print(table_elem_dic)
-
-
+    print("sum:", sum)
+    print("sum_index_st:", sum_index_st)
+    print("sum_index_tuple:", sum_index_tuple)
+    print("set_lines", set_lines)
 
 def round_1_attack():
 
 
     # Local Variables
-    hk_score = [[0 for x in range(256)] for y in range(16)]             # Score structure per key byte value
+    hk_score = [[[0,0] for x in range(256)] for y in range(16)]             # Score structure per key byte value
     candidate_k = []                                                    # List of candidate key bytes per byte
     l=0                                                                 # Measurement file index
 
 
     while(True):
         try:
-            p,scores  = read_files(l)
+            p,timings  = read_files(l)
             l+=1
         except IOError:
             break
+
+
+        # Get average and standard deviation values 
+        avg = st.mean(timings)
+        st_dev = st.stdev(timings)
+
 
         # For each meas. iteration each hip. key byte gets updated with a new score (nº of clock cycles)
         for bi, byte in enumerate (hk_score):
             for hki in range(len(byte)):
                 hx = p[bi] ^ hki   
                 hline = table_elem_dic[(bi%4,hx)]
-                new_score = scores[hline]
-                hk_score[bi][hki] += new_score
+
+                if (timings[hline] < (avg + 1*st_dev)):
+
+                    weight_avg(byte, hki, timings[hline] )
 
 
-    # for i in range(32):
-    #     print(str(i*8) + " : " + str(hk_score[2][i*8]))
+    # Retrieve the remaining combinations from lk[]
+    max = 0
+    key_value = 0
+    lk_list = []
+    for byte, key_byte in enumerate(hk_score):
+        for value, key in enumerate (key_byte):
+            
+            if(key[0] > max):
+                max = key[0]
+                key_value = value
 
-    for item in (hk_score):
-        a = []
-        for index in range(len(item)):
-            if item[index] == max(item):
-                a.append(index)
-        a.sort()    
-        candidate_k.append(a.copy())
-
-        
-    # sort candidate and pick the min value of each key
-    for item in candidate_k:
-        first_candidate_k.append(item[0])
-    
+        first_candidate_k.append(key_value)
 
 
 
 
 def round_2_attack():
-
-    # This part of the attack is an open solution
-    # We are able to use other 2-Round equations in order to help us to dig into the correct key
-    # Lowering the required number of measurements
-    # Check TODO_.txt for details
 
 
     # Local Variables
@@ -224,22 +242,22 @@ def round_2_attack():
     hk = [0 for x in range(16)]                                         # Hipotetical key
     n_comb = 16 - offset_elem                                           # number of possible combinations of each key byte | e.g: 0->16 | 8->8 | 12->4 | 14->2
     n_bits = int(math.log2(n_comb))                                     # number of bits from each key byte that remain unknown
-    lk = [[0 for x in range(n_comb**4)] for y in range(4)]              # Structure containing all the combinations from the 4 equations
+    lk = [[[0,0] for x in range(n_comb**4)] for y in range(4)]          # Structure containing all the combinations from the 4 equations
     l=0                                                                 # Measurement file index
 
     
     while(True):
         try:
-            p,scores  = read_files(l)
+            p,timings  = read_files(l)
             l+=1
         except IOError:
             break
 
-
-        # get the lines scores below the 1-standard-deviation
-        unused_lines = get_standard_deviation_elem( scores, -1, "below")
+        # Get average and standard deviation values 
+        avg = st.mean(timings)
+        st_dev = st.stdev(timings)
         
-        #consider using byarray instead of int
+        
         for low_hkA in range(0, (n_comb)):
             for low_hkB in range(0, (n_comb)):
                 for low_hkC in range(0, (n_comb)):
@@ -261,7 +279,6 @@ def round_2_attack():
                         hk[14] = (first_candidate_k[14] + low_hkC)
                         hk[15] = (first_candidate_k[15] + low_hkD)
 
-
                         hx[0] = s[p[0] ^ hk[0]] ^ s[p[5] ^ hk[5]] ^ F.Multiply(2, s[p[10]^hk[10]]) ^ F.Multiply(3, s[p[15]^hk[15]]) ^ s[hk[15]] ^ first_candidate_k[2]
                         hx[1] = s[p[4] ^ hk[4]] ^ F.Multiply(2,s[p[9] ^ hk[9]]) ^ F.Multiply(3, s[p[14]^hk[14]]) ^ s[p[3]^hk[3]] ^ s[hk[14]] ^ first_candidate_k[1] ^ first_candidate_k[5]
                         hx[2] = F.Multiply(2,s[p[8] ^ hk[8]]) ^ F.Multiply(3,s[p[13] ^ hk[13]]) ^ s[p[2]^hk[2]] ^ s[p[7]^hk[7]] ^ s[hk[13]] ^ first_candidate_k[0] ^ first_candidate_k[4] ^ first_candidate_k[8] ^ 1
@@ -270,36 +287,60 @@ def round_2_attack():
                         comb_index = (low_hkA<<(n_bits*3)) + (low_hkB<<(n_bits*2)) + (low_hkC<<(n_bits*1)) + low_hkD
                         for i in range(0,4):
                             hline = table_elem_dic[((2-i)%4, hx[i])]
-                            if (hline in unused_lines):
-                                lk[i][comb_index] += 1
 
+                            if (timings[hline] < (avg + 1*st_dev)):
+                                weight_avg(lk[i], comb_index, timings[hline])
+
+
+                
 
     # Retrieve the remaining combinations from lk[]
-    lk_list = [[]for y in range(4)]
+    max = 0
+    max_index = 0
+    lk_list = []
     for lk_index, lk_item in enumerate(lk):
         for comb_index, comb in enumerate (lk_item):
-            if comb == 0:
-                lk_list[lk_index].append(comb_index)
-    
+            
+            if(comb[0] > max):
+                max = comb[0]
+                max_index = comb_index
+
+        lk_list.append(max_index)
 
     # Registering discovered key bytes
-    for lk_index, lk_item in enumerate(lk_list):
-        set_final_key(fk, lk_index,lk_item, n_comb, n_bits)
+    # for lk_index, lk_item in enumerate(lk_list):
+    set_final_key(fk, lk_list, n_comb, n_bits)
         
 
 # Auxiliar Functions
 
-# Registers the discovered keys bytes values by the attack
-def set_final_key(fk, i, lk_item, n_comb, n_bits):
 
-    for item in lk_item:
+def write_file_fk(fk):
+
+    with open('discovered_key.out', 'w') as f:
+        for key in fk:
+            f.write(str(key) + '\n')
+
+
+# Registers the discovered keys bytes values by the attack
+def set_final_key(fk, lk_list, n_comb, n_bits):
+
+    for i, item in enumerate(lk_list):
         for j in range(0,4):
             key_byte = first_candidate_k[(i*4+j*5) %16] + (item>>((3-j)*n_bits) & (n_comb-1))
-            if key_byte not in fk[(i*4+j*5)%16]:
-                fk[(i*4+j*5)%16].append(key_byte)
+            # if key_byte not in fk[(i*4+j*5)%16]:
+            fk[(i*4+j*5)%16] = key_byte
     
 
 
+# Variable receives a value and updates the respective average value
+def weight_avg(avg_struct, index, timing):
+
+    old_freq = avg_struct[index][1]
+    old_timing = avg_struct[index][0]
+    avg_struct[index][1] += 1
+    new_freq = avg_struct[index][1]
+    avg_struct[index][0] = (old_freq/new_freq) * old_timing + (1/new_freq) * timing
 
 # Get the content of meas, victim files
 def read_files(l):
@@ -315,6 +356,18 @@ def read_files(l):
     meas_file.close()
     
     return plaintext, scores
+
+
+# Get the content of meas, victim files
+def read_table_file(l):
+    
+    table_file = open("side_channel_info/table#" + str(l) + ".out", "r")
+
+    timings = [int(i) for i in table_file]
+
+    table_file.close()
+    
+    return timings
 
 
 

@@ -20,5 +20,5 @@ vic: vic.c
 
 clean:
 	rm -f $(TARGETS) *.o *.stderr *.stdout core *~
-	rm -f lines_used_debug/*.*
+	rm -f *.out
 	rm -f side_channel_info/*.*

