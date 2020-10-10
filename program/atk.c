@@ -12,10 +12,10 @@
 #include <time.h>
 
 #define WAIT_TIME 15
-#define N_MEAS_T 50                 // original value: 200
-#define INNER_REP_T 150             //  number of times a measurement of a given L1 line is performed
+#define N_MEAS_T 50                 
+#define INNER_REP_T 150
 #define N_MEAS 150
-#define INNER_REPETITIONS 350       //  number of times a measurement of a given L1 line is performed
+#define INNER_REPETITIONS 350
 
 #define L1_LINES 64
 #define LOGICAL_CORE 3              //  logical core where this process will run on
@@ -28,10 +28,9 @@
 void cpu_setup();
 void papi_config(int * retval, int * eventSet);
 void get_plaintexts_t( char * plaintext,  char * plaintext2, int repetition, int min, int max);
-void get_p(char * plaintext);
-void set_args(unsigned char * plaintext, unsigned char *  key, char * args[]);
-int L1_line_translator( void * addr );
-int L1_cache_block_offset_translator( void * addr);
+void get_plaintext(char * plaintext);
+// int L1_line_translator( void * addr );
+// int L1_cache_block_offset_translator( void * addr);
 int handle_error(int code, char *outstring);
 
 char V[SIZE32KB];                   
@@ -57,8 +56,6 @@ int main(void) {
     char plaintext[16*(3+1)+1];
     char plaintext2[16*(3+1)+1];
     long final_score[L1_LINES] = {0};
-
-
 
 
     printf("### T-Box Mapping Info Extraction\n");
@@ -137,7 +134,7 @@ int main(void) {
             final_score[l] = 0;
         }
 
-        get_p(plaintext);
+        get_plaintext(plaintext);
         args[0] = "./vic";
         args[1] = plaintext;
         args[2] =  NULL;
@@ -227,7 +224,7 @@ void get_plaintexts_t( char * plaintext, char * plaintext2, int repetition, int 
 
 
 
-void get_p(char * plaintext){
+void get_plaintext(char * plaintext){
     
     int rand_value;
     char num[4];
@@ -274,19 +271,19 @@ void cpu_setup(){
     }
 }
 
-int L1_line_translator( void * addr) {
+// int L1_line_translator( void * addr) {
 
-    uint64_t n = (uintptr_t) (addr);
-    uint64_t x = (n>>6)%SIZE32KB%64;    
-    return (int) x;
-}
+//     uint64_t n = (uintptr_t) (addr);
+//     uint64_t x = (n>>6)%SIZE32KB%64;    
+//     return (int) x;
+// }
 
-int L1_cache_block_offset_translator( void * addr) {
+// int L1_cache_block_offset_translator( void * addr) {
 
-    uint64_t n = (uintptr_t) (addr);
-    uint64_t x = n%SIZE32KB%64;    
-    return (int) x;
-}
+//     uint64_t n = (uintptr_t) (addr);
+//     uint64_t x = n%SIZE32KB%64;    
+//     return (int) x;
+// }
 
 int handle_error(int code, char *outstring){
     

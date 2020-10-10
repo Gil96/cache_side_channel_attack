@@ -55,10 +55,12 @@ line_value_threshold = 50                                           # Max value 
 
 # Main Program
 def main():
+
     table_offset_attack()
     print("t0e_line: ", t0e_line)
     print("offset_elem: ", offset_elem)
 
+    write_file([offset_elem, t0e_line], "tbox_discovered.out")
     round_1_attack()
     print("first_candidate_k : ", first_candidate_k)
 
@@ -66,7 +68,7 @@ def main():
     print("final key:", fk)
 
 
-    write_file_fk(fk)
+    write_file(fk, "discovered_key.out")
 
 
 
@@ -179,10 +181,10 @@ def table_offset_attack():
     #print("first| second | offset ")
     # print(first, second, offset_elements)
     # print(table_elem_dic)
-    print("sum:", sum)
-    print("sum_index_st:", sum_index_st)
-    print("sum_index_tuple:", sum_index_tuple)
-    print("set_lines", set_lines)
+    # print("sum:", sum)
+    # print("sum_index_st:", sum_index_st)
+    # print("sum_index_tuple:", sum_index_tuple)
+    # print("set_lines", set_lines)
 
 def round_1_attack():
 
@@ -258,6 +260,7 @@ def round_2_attack():
         st_dev = st.stdev(timings)
         
         
+        # Generates every single combination for the 4 key groups fo the unknown part of the key
         for low_hkA in range(0, (n_comb)):
             for low_hkB in range(0, (n_comb)):
                 for low_hkC in range(0, (n_comb)):
@@ -284,6 +287,8 @@ def round_2_attack():
                         hx[2] = F.Multiply(2,s[p[8] ^ hk[8]]) ^ F.Multiply(3,s[p[13] ^ hk[13]]) ^ s[p[2]^hk[2]] ^ s[p[7]^hk[7]] ^ s[hk[13]] ^ first_candidate_k[0] ^ first_candidate_k[4] ^ first_candidate_k[8] ^ 1
                         hx[3] = F.Multiply(3,s[p[12] ^ hk[12]]) ^ s[p[1]^hk[1]] ^ s[p[6]^hk[6]] ^ F.Multiply(2, s[p[11]^hk[11]]) ^ s[hk[12]] ^ first_candidate_k[3] ^ first_candidate_k[7] ^ first_candidate_k[11] ^ first_candidate_k[15]
      
+
+                        # Get an hipotetical combination, to get resp. hip. line, to get resp. hip. timing, to be weightened on combination score 
                         comb_index = (low_hkA<<(n_bits*3)) + (low_hkB<<(n_bits*2)) + (low_hkC<<(n_bits*1)) + low_hkD
                         for i in range(0,4):
                             hline = table_elem_dic[((2-i)%4, hx[i])]
@@ -315,9 +320,9 @@ def round_2_attack():
 # Auxiliar Functions
 
 
-def write_file_fk(fk):
+def write_file(fk, file_name):
 
-    with open('discovered_key.out', 'w') as f:
+    with open(file_name, 'w') as f:
         for key in fk:
             f.write(str(key) + '\n')
 
@@ -379,14 +384,7 @@ def is_above_avg(avg, lst):
     return True
     
 
-def are_lines_neighboors(lst,len):
-    statement1 = ((lst[0] + 1) %len ==lst[1])
-    statement2 = ((lst[1] + 1) %len ==lst[0])
 
-    print("statement1", statement1)
-    print("statement2", statement2)
-    
-    return statement1 or statement2
 
 
 def get_neighboors(index_list, list_len):
