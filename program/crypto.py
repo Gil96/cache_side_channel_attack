@@ -60,7 +60,10 @@ def main():
     print("t0e_line: ", t0e_line)
     print("offset_elem: ", offset_elem)
 
-    write_file([offset_elem, t0e_line], "tbox_discovered.out")
+    write_file([offset_elem, t0e_line], "tbox_discovered_.out")
+
+    # return # TESTING PURPOSES ============================ ERASE ME !!!
+
     round_1_attack()
     print("first_candidate_k : ", first_candidate_k)
 
@@ -68,7 +71,7 @@ def main():
     print("final key:", fk)
 
 
-    write_file(fk, "discovered_key.out")
+    write_file(fk, "discovered_key_.out")
 
 
 
@@ -165,7 +168,6 @@ def table_offset_attack():
     t3_line_index = [i for i, j in enumerate(set_lines) if j == minn]
     t0_line_index = (t3_line_index[0]+1)%4
     t0e_line = set_i + (t0_line_index*16)
-    
 
     # Table element structure: (table index, element index) : L1 line
     #   Warning: It assumes all the tables are consequent in memory

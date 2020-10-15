@@ -6,7 +6,6 @@ AES_PATH = /home/verao9/Desktop/cache_side_channel_attack/usr/local/ssl/lib
 
 
 all: $(TARGETS)
-	rm -f lines_used_debug/*.*
 	rm -f side_channel_info/*.*
 
 atk: atk.c
@@ -15,10 +14,21 @@ atk: atk.c
 
 # On the terminal:
 # $ export LD_LIBRARY_PATH=/home/..../ssl/lib:LD_LIBRARY_PATH
+
+# vic_enc: vic_enc.c
+# 	$(CC) -L$(AES_PATH) $(CFLAGS) -o vic_enc vic_enc.c -lcrypto
+
+# atk_enc: atk_enc.c
+# 	$(CC) -L$(AES_PATH) $(CFLAGS) -o atk_enc atk_enc.c -lcrypto
+
+
+
 vic: vic.c
 	$(CC) -L$(AES_PATH) $(CFLAGS) -o vic vic.c -lcrypto
 
+
 clean:
 	rm -f $(TARGETS) *.o *.stderr *.stdout core *~
-	rm -f *.out
+	rm -f *_.out
 	rm -f side_channel_info/*.*
+

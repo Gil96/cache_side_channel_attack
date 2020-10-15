@@ -11,11 +11,11 @@
 #include <string.h>
 #include <time.h>
 
-#define WAIT_TIME 15
-#define N_MEAS_T 50                 
-#define INNER_REP_T 150
-#define N_MEAS 150
-#define INNER_REPETITIONS 350
+#define WAIT_TIME 0
+#define Nt 32
+#define It 2048
+#define N 256
+#define I 128
 
 #define L1_LINES 64
 #define LOGICAL_CORE 3              //  logical core where this process will run on
@@ -23,7 +23,6 @@
 #define W 8                         //  associativity number of L1
 #define STRIDE (SIZE32KB/W)         //  step distance between the consecutive accesses in order to fill a particular line of L1
 #define C_BLOCK_SIZE 64             //  bytes space between each attacker thread [block size=64]
-
 
 void cpu_setup();
 void papi_config(int * retval, int * eventSet);
@@ -60,7 +59,7 @@ int main(void) {
 
     printf("### T-Box Mapping Info Extraction\n");
 
-    for(int j = 0; j < N_MEAS_T ; j++){
+    for(int j = 0; j < Nt ; j++){
 
         for(int l = 0;  l<L1_LINES; l++){
             final_score[l] = 0;
@@ -97,7 +96,7 @@ int main(void) {
                     handle_error(1,"start");
         
                 // ----------------------------------------------
-                for (ii = 0; ii < INNER_REP_T ; ii++) {
+                for (ii = 0; ii < It ; ii++) {
                     for(i = min; i < SIZE32KB; i+= STRIDE)
                         V[i] = V[i] + 1;
                 }
@@ -123,11 +122,13 @@ int main(void) {
 
     }
 
+    // return 0; // ONly FOR TESSTINGG ==========================================
+
 
     printf("### Side Channel Information Extraction !\n"); // this print is required (check book)
 
     // Measurement loop
-    for(int j = 0; j < N_MEAS ; j++){    
+    for(int j = 0; j < N ; j++){    
 
         // resets the score structures
         for(int l = 0;  l<L1_LINES; l++){
@@ -159,7 +160,7 @@ int main(void) {
                     handle_error(1,"start");
 
                 // ----------------------------------------------
-                for (ii = 0; ii < INNER_REPETITIONS; ii++) {
+                for (ii = 0; ii < I; ii++) {
                     for(i = min; i < SIZE32KB; i+= STRIDE)
                         V[i] = V[i] + 1;
                 }
