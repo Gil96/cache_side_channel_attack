@@ -7,82 +7,51 @@
 #include <sched.h>
 #include <inttypes.h>
 #include <string.h>
-
 #include <time.h>
-
-// Aes header needs to link with the one on /usr/
 #include "aes.h"
-// #include <openssl/aes.h>
 
-#define REPETITIONS 300000
+#define REPETITIONS 300000        // number of encryption repetitions
 #define LOGICAL_CORE 7            // logical core where this process will run on
 #define W 8                       //  associativity number of L1
 #define STRIDE (SIZE32KB/W)       //  step distance between the consecutive accesses in order to fill a particular line of L1
-
-
 
 void cpu_setup();
 
 unsigned char * convert_plaintext(char * input);
 
 int main(int argc, char *argv[]) {
-
     
+    // Makes thread to run on a certain logic core
     cpu_setup();
 
-    /*
-    Warning! - malloc() functions
-    All the variables created using a malloc() map different L1 lines in different vic.c executions
-    */
-
-	unsigned char zero_key[] =   
-        {0,0,0,0
-        ,0,0,0,0
-        ,0,0,0,0
-        ,0,0,0,0};
-
-    // Place the secret key here
+    // Secret key
     unsigned char secret_key[] = 
         {20,20,20,20,
         20,20,20,20,
         20,20,20,20,
         20,20,20,20};
 
-    unsigned char * chosen_key;
-
     // plaintext configuration
     const unsigned char *p = convert_plaintext(argv[1]);
 
-    chosen_key = secret_key;
-    if(argv[2] != NULL){
-        chosen_key = zero_key;
-    }
-
-// output configuration
+    // output configuration
     unsigned char out[16]; 
 
-// 10-round AES 128-bit-key configuration
+    // 10-round AES 128-bit-key configuration
     AES_KEY * kptr, key;
     kptr = &key;
     kptr->rounds = 10;
 
-    
-// creates the round key from the secret key
-    if (AES_set_encrypt_key( chosen_key, 128, kptr) != 0)
+    // creates the round key from the secret key
+    if (AES_set_encrypt_key( secret_key, 128, kptr) != 0)
         printf("AES_set_encrypt_key ERROR");
     
-    
-// AES-128bit ECB encryption
+    // AES-128bit ECB encryption
     for(register int rep = 0; rep < REPETITIONS; rep++){
         AES_encrypt(p, out, kptr);
     }
-
-
-
     return 0;
 }
-
-
 
 unsigned char * convert_plaintext(char * input){
 
@@ -96,7 +65,6 @@ unsigned char * convert_plaintext(char * input){
             in[l] = (unsigned char) atoi(temp);
             e=0;
             l++;
-
         }else{
             temp[e] = input[i];
             e++;
@@ -104,9 +72,6 @@ unsigned char * convert_plaintext(char * input){
     }
     return in;
 }
-
-
-
 
 void cpu_setup(){
 

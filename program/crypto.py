@@ -9,10 +9,10 @@
 
 
 # Imports
-import math
-import statistics as st
+import math                  # To perform logarithmic calculations
+import statistics as st      # To perform average and standard deviations operations
 from pyfinite import ffield  # To perform GF(256) multiplications
-from itertools import combinations
+from itertools import combinations  # To get combinations
 
 
 # Global Variables
@@ -57,18 +57,18 @@ line_value_threshold = 50                                           # Max value 
 def main():
 
     table_offset_attack()
-    print("t0e_line: ", t0e_line)
-    print("offset_elem: ", offset_elem)
+    print("L1-D Line of T0: ", t0e_line)
+    print("Additional Offset: ", offset_elem)
 
     write_file([offset_elem, t0e_line], "tbox_discovered_.out")
 
-    # return # TESTING PURPOSES ============================ ERASE ME !!!
 
     round_1_attack()
-    print("first_candidate_k : ", first_candidate_k)
+    print("First round key bits discovered: ", first_candidate_k)
 
+    return 
     round_2_attack()
-    print("final key:", fk)
+    print("Final key:", fk)
 
 
     write_file(fk, "discovered_key_.out")
@@ -124,19 +124,31 @@ def table_offset_attack():
     for i in range(len(p1_lines)):
         diff_lines[i] = int((p2_lines[i][0] - p1_lines[i][0]) / l)
 
-
-    # Debug section
-    # print('p1:', p1_lines)
-    # print('p2:', p2_lines)
-    # print('diff',diff_lines)
-
-
-
     # Creating of sum - structure containg the scores of each group of 4 lines 16 lines apart
     sum = [0 for x in range(16)]
     for i in range(16):
         for j in range(4):
             sum[i] += diff_lines[i+j*16]
+
+
+
+    # Debug section
+    # print("p1")
+    # for elem in p1_lines:
+    #     print(int(elem[0]))
+    # print("p2")
+    # for elem in p2_lines:
+    #     print(int(elem[0]))
+    # print("diff")
+    # for elem in diff_lines:
+    #     print(int(elem))
+    # print("sum")
+    # for elem in sum:
+    #     print(int(elem))
+    # print('p1:', p1_lines)
+    # print('p2:', p2_lines)
+    # print('diff',diff_lines)
+
 
 
     # Get list containing all the indexes of items above 2 st dev
@@ -215,9 +227,7 @@ def round_1_attack():
             for hki in range(len(byte)):
                 hx = p[bi] ^ hki   
                 hline = table_elem_dic[(bi%4,hx)]
-
                 if (timings[hline] < (avg + 1*st_dev)):
-
                     weight_avg(byte, hki, timings[hline] )
 
 
@@ -261,7 +271,6 @@ def round_2_attack():
         avg = st.mean(timings)
         st_dev = st.stdev(timings)
         
-        
         # Generates every single combination for the 4 key groups fo the unknown part of the key
         for low_hkA in range(0, (n_comb)):
             for low_hkB in range(0, (n_comb)):
@@ -298,9 +307,6 @@ def round_2_attack():
                             if (timings[hline] < (avg + 1*st_dev)):
                                 weight_avg(lk[i], comb_index, timings[hline])
 
-
-                
-
     # Retrieve the remaining combinations from lk[]
     max = 0
     max_index = 0
@@ -315,13 +321,14 @@ def round_2_attack():
         lk_list.append(max_index)
 
     # Registering discovered key bytes
-    # for lk_index, lk_item in enumerate(lk_list):
     set_final_key(fk, lk_list, n_comb, n_bits)
         
+
 
 # Auxiliar Functions
 
 
+# Write in file file_name each element of fk list
 def write_file(fk, file_name):
 
     with open(file_name, 'w') as f:
@@ -351,15 +358,11 @@ def weight_avg(avg_struct, index, timing):
 
 # Get the content of meas, victim files
 def read_files(l):
-    
     meas_file = open("side_channel_info/meas#" + str(l) + ".out", "r")
-
     plaintext_raw = meas_file.readline()
     plaintext_raw = plaintext_raw[:-2]
-
     plaintext = [int(i) for i in plaintext_raw.split('.')]
     scores = [int(i) for i in meas_file]
-
     meas_file.close()
     
     return plaintext, scores
@@ -367,13 +370,9 @@ def read_files(l):
 
 # Get the content of meas, victim files
 def read_table_file(l):
-    
     table_file = open("side_channel_info/table#" + str(l) + ".out", "r")
-
     timings = [int(i) for i in table_file]
-
     table_file.close()
-    
     return timings
 
 
@@ -388,20 +387,17 @@ def is_above_avg(avg, lst):
 
 
 
-
+# Get the consecutive lines
 def get_neighboors(index_list, list_len):
-
     index_list_tuples = list(combinations(index_list,2))
-
     for item in index_list_tuples:
-        
         if (((item[0] + 1) %list_len ==item[1]) or ((item[1] + 1) %list_len == item[0])):
             return item
-
     return False
 
 
 
+# Get index of elements below/ above a certain limit
 def get_standard_deviation_elem(list_elem, num_stand_dev, direction):
 
     avg = st.mean(list_elem)
